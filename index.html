@@ -250,6 +250,8 @@ details.debug button.on{background:rgba(255,209,102,.3)}
 .sum .grid4 small{display:block;color:var(--mut);font-size:11px}
 .sum .grid4 b{font:800 24px var(--num)}
 
+body.mode-slot .only-classic,body:not(.mode-slot) .only-slot{display:none !important}
+#drMode{background:linear-gradient(135deg,rgba(255,209,102,.3),rgba(255,79,163,.3))}
 @media (hover:none){.shake small{display:none}}
 @media (max-width:520px){#mDex .sheet-foot .note{display:none}#mDex .pager{margin-right:auto}}
 @media (max-width:420px){
@@ -277,7 +279,7 @@ details.debug button.on{background:rgba(255,209,102,.3)}
 
   <main class="stage">
     <header class="hud">
-      <div class="brand"><span class="logo"></span><div><b>關都彈珠研究所</b><small>KANTO · 151</small></div></div>
+      <div class="brand"><span class="logo"></span><div><b>關都彈珠研究所</b><small id="brandSub">KANTO · 151</small></div></div>
       <div class="chip ammo" id="ammoChip"><span class="mini-pb"></span><b data-k="balls">100</b></div>
       <div class="chip" title="關都圖鑑"><span style="font-size:15px">📕</span><b data-k="dex">0</b><span class="of">/151</span></div>
       <button class="ibtn" id="btnPause" aria-label="暫停">⏸</button>
@@ -314,8 +316,8 @@ details.debug button.on{background:rgba(255,209,102,.3)}
     <section class="card">
       <h3>操作</h3>
       <ul class="keys">
-        <li>點棋盤：在那個位置放 1 顆彈珠</li>
-        <li><kbd>←</kbd> <kbd>→</kbd> 移動發射器　<kbd>Space</kbd> 放珠</li>
+        <li>點棋盤：在那個位置連發 10 顆彈珠</li>
+        <li><kbd>←</kbd> <kbd>→</kbd> 移動發射器　<kbd>Space</kbd> 發射 10 顆</li>
         <li><kbd>Z</kbd> <kbd>X</kbd> 左右搖台（搖太多會 TILT）</li>
         <li><kbd>P</kbd> 暫停　<kbd>B</kbd> 開箱　<kbd>D</kbd> 圖鑑</li>
       </ul>
@@ -326,7 +328,10 @@ details.debug button.on{background:rgba(255,209,102,.3)}
         <li>一局 100 顆彈珠</li>
         <li>閃電碰滿 20 次：+5 顆</li>
         <li>精靈球碰滿 40 次：超級球</li>
-        <li>中心亮起時命中：閃光</li>
+        <li class="only-classic">中心亮起時命中：閃光</li>
+        <li class="only-slot">進啟動口＝拉霸轉一次（保留 4）</li>
+        <li class="only-slot">兩格稀有圖案＝聽牌，三格相同＝大獎</li>
+        <li class="only-slot">三隻皮卡丘＝超級大獎</li>
         <li>3 隻相同自動進化</li>
       </ul>
     </section>
@@ -342,6 +347,7 @@ details.debug button.on{background:rgba(255,209,102,.3)}
       <button id="drDex">📕 圖鑑</button>
       <button id="drBox">🎁 立即開箱</button>
       <button id="drNew">🔄 重開一局</button>
+      <button id="drMode" class="wide"></button>
     </div>
     <div class="card" style="padding:8px 14px">
       <div class="toggle"><span>🎵 背景音樂</span><button class="sw" id="swMusic" aria-label="背景音樂"></button></div>
@@ -357,10 +363,14 @@ details.debug button.on{background:rgba(255,209,102,.3)}
     <div class="card">
       <h3>玩法</h3>
       <ul class="rules">
-        <li>一局 100 顆彈珠，點棋盤就在那裡放一顆</li>
-        <li>按住可以連續放，左右搖台能推動彈珠，搖太兇會 TILT 鎖台</li>
+        <li>一局 100 顆彈珠，點棋盤就從那個位置連發 10 顆</li>
+        <li>按住不放會一輪接一輪發射，左右搖台能推動彈珠，搖太兇會 TILT 鎖台</li>
         <li>落進會移動的入口得到精靈球；閃電碰滿 20 次 +5 顆</li>
-        <li>中心每 10 秒亮 3 秒，這時命中必得閃光</li>
+        <li class="only-classic">中心每 10 秒亮 3 秒，這時命中必得閃光</li>
+        <li class="only-slot">彈珠落進拉霸下方的「啟動口」，拉霸就轉一次（最多保留 4 次）</li>
+        <li class="only-slot">前兩格是稀有以上（金框）的同一隻，會跳出「聽牌！」，最後一格先變「？」</li>
+        <li class="only-slot">三格同一隻寶可夢＝大獎：拿到 3 隻（開箱直接進化），大入賞口打開 12 秒，每顆 +2 珠</li>
+        <li class="only-slot">三隻皮卡丘＝超級大獎：必定閃光，再加皮卡丘 RUSH 5 轉（大獎機率大增）</li>
         <li>兩側落空會幫傳說寶可夢充能，滿了必定收服</li>
       </ul>
     </div>
