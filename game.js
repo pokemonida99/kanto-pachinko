@@ -8,13 +8,21 @@ let H = 820;                        // 棋盤高度會依螢幕比例調整
 const GRAV = 1150, BALL_R = 7, MAX_V = 1100;
 const GAME_BALLS = 100, ROUND_SEC = 30;
 const BOLT_GOAL = 20, BOLT_REWARD = 5, PBALL_GOAL = 40, MAX_ON_BOARD = 140;
-// 兩種玩法：classic（第一版，中央轉盤）／ slot（拉霸版）；用 ?mode=slot 切換
-const MODE = new URLSearchParams(location.search).get('mode') === 'slot' ? 'slot' : 'classic';
+// 拉霸版是主要玩法；傳統版（中央轉盤）用 ?mode=classic；挑戰用 ?challenge=all 或 ?challenge=500（拉霸版）
+const QS = new URLSearchParams(location.search);
+const MODE = QS.get('mode') === 'classic' ? 'classic' : 'slot';
 const SLOT = MODE === 'slot';
-const SAVE_KEY = SLOT ? 'kantoPachinko.slot' : 'kantoPachinko.v1';
-const DEX_KEY = 'kantoPachinko.dex';   // 圖鑑兩版共用
+const CH = SLOT && ['all', '500'].includes(QS.get('challenge')) ? QS.get('challenge') : null;
+const CH_NAME = { all: '全圖鑑最少彈珠', 500: '500 顆收集賽' };
+const SAVE_KEY = CH ? 'kantoPachinko.ch.' + CH : SLOT ? 'kantoPachinko.slot' : 'kantoPachinko.v1';
+const DEX_KEY = 'kantoPachinko.dex';       // 一般模式兩版共用；挑戰有自己的圖鑑，存檔時再併進共用圖鑑
+const REC_KEY = 'kantoPachinko.records';   // 挑戰最佳紀錄
+const selfURL = q => location.pathname + (q ? '?' + q : '');
+const MODE_QS = CH ? 'challenge=' + CH : SLOT ? '' : 'mode=classic';
 document.body.classList.add('mode-' + MODE);
-if (SLOT) { document.title = '關都彈珠研究所・拉霸版'; document.getElementById('brandSub').textContent = 'KANTO · SLOT'; }
+if (CH) document.body.classList.add('challenge');
+document.title = CH ? `挑戰：${CH_NAME[CH]}・關都彈珠研究所` : SLOT ? '關都彈珠研究所' : '關都彈珠研究所・傳統版';
+document.getElementById('brandSub').textContent = CH ? (CH === 'all' ? 'CHALLENGE · 151' : 'CHALLENGE · 500') : SLOT ? 'KANTO · SLOT' : 'KANTO · CLASSIC';
 const BALL_NAME = { poke: '精靈球', great: '超級球', ultra: '高級球', master: '大師球' };
 const TIER_NAME = { common: '普通', rare: '稀有', srare: '超稀有', legend: '傳說' };
 const TIER_RANK = { common: 0, rare: 1, srare: 2, legend: 3 };
@@ -65,28 +73,39 @@ function rollBallType() {
 }
 
 /* ============ 存檔 ============ */
-const newGame = () => ({ balls: GAME_BALLS, shots: 0, caught: 0, newDex: 0, shiny: 0, best: null, ended: false });
+const newGame = () => ({ balls: CH === '500' ? 500 : GAME_BALLS, shots: 0, caught: 0, newDex: 0, shiny: 0, best: null, ended: false });
 const fresh = () => ({ dex: {}, bolt: 0, pball: 0, charge: [0, 0], legIdx: [0, 0], box: [], recent: [], game: newGame(),
-  stats: { caught: 0, shots: 0, rounds: 0, center: 0, legend: 0 }, music: true, sfx: true });
+  stats: { caught: 0, shots: 0, rounds: 0, center: 0, legend: 0, by: {}, balls: {}, jpBy: {} }, music: true, sfx: true });
 if (/[?&]reset\b/.test(location.search)) {
   try { [SAVE_KEY, DEX_KEY].forEach(k => localStorage.removeItem(k)); } catch (e) {}
-  history.replaceState(null, '', location.pathname + (SLOT ? '?mode=slot' : ''));
+  history.replaceState(null, '', selfURL(MODE_QS));
 }
 let S;
 try { S = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) {}
 S = Object.assign(fresh(), S || {});
+S.stats = Object.assign(fresh().stats, S.stats);
 delete S.balls;   // 舊版欄位
-try {
-  const shared = JSON.parse(localStorage.getItem(DEX_KEY));
-  if (shared && shared.dex) { S.dex = shared.dex; S.recent = shared.recent || []; }
-} catch (e) {}
+// 舊版拉霸存檔在 ?mode=slot，跟現在的預設同一個 key，不用搬
+let shared = null;
+try { shared = JSON.parse(localStorage.getItem(DEX_KEY)); } catch (e) {}
+if (!CH && shared && shared.dex) { S.dex = shared.dex; S.recent = shared.recent || []; }
 let saveT = 0;
 function save() {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(S));
-    localStorage.setItem(DEX_KEY, JSON.stringify({ dex: S.dex, recent: S.recent }));
+    if (!CH) { localStorage.setItem(DEX_KEY, JSON.stringify({ dex: S.dex, recent: S.recent })); return; }
+    // 挑戰裡抓到的也會點亮一般圖鑑
+    const sh = JSON.parse(localStorage.getItem(DEX_KEY) || 'null') || { dex: {}, recent: [] };
+    for (const id in S.dex) {
+      const e = S.dex[id], t = sh.dex[id] = sh.dex[id] || { n: 0, s: 0, got: false, gotS: false };
+      if (e.got) t.got = true;
+      if (e.gotS) t.gotS = true;
+    }
+    localStorage.setItem(DEX_KEY, JSON.stringify(sh));
   } catch (e) {}
 }
+const stat = (k, n = 1) => { S.stats[k] = (S.stats[k] || 0) + n; };
+const statMap = (m, k, n = 1) => { const o = S.stats[m] = S.stats[m] || {}; o[k] = (o[k] || 0) + n; };
 const dexOf = id => (S.dex[id] = S.dex[id] || { n: 0, s: 0, got: false, gotS: false });
 const dexCount = () => POKEDEX.filter(p => S.dex[p.id] && S.dex[p.id].got).length;
 const shinyCount = () => POKEDEX.filter(p => S.dex[p.id] && S.dex[p.id].gotS).length;
@@ -427,15 +446,16 @@ function addToBox(item) { S.box.push(item); refreshUI(); }
 
 function onBumper(bp) {
   bp.f = 1; sfx.bump();
+  stat(bp.kind === 'bolt' ? 'boltHits' : 'pballHits');
   if (bp.kind === 'bolt') {
     if (++S.bolt >= BOLT_GOAL) {
-      S.bolt = 0; S.game.balls += BOLT_REWARD; sfx.reward(); burst(bp.x, bp.y, '#ffd166', 26);
+      S.bolt = 0; S.game.balls += BOLT_REWARD; stat('bonusBalls', BOLT_REWARD); stat('boltRewards'); sfx.reward(); burst(bp.x, bp.y, '#ffd166', 26);
       addFloat(bp.x, bp.y - 46, `+${BOLT_REWARD} 彈珠`);
       toast(`⚡ 閃電碰滿 ${BOLT_GOAL} 次，彈珠 +${BOLT_REWARD}！`);
       refreshUI();
     }
   } else if (++S.pball >= PBALL_GOAL) {
-    S.pball = 0; addToBox({ ball: 'great' }); sfx.reward(); burst(bp.x, bp.y, '#60a5fa', 26);
+    S.pball = 0; addToBox({ ball: 'great' }); stat('pballRewards'); sfx.reward(); burst(bp.x, bp.y, '#60a5fa', 26);
     addFloat(bp.x, bp.y - 46, '超級球 +1', '#60a5fa');
     toast(`精靈球碰滿 ${PBALL_GOAL} 次，送你一顆超級球！`);
   }
@@ -443,8 +463,8 @@ function onBumper(bp) {
 function onCatch(b) {
   const ball = rollBallType();
   addToBox({ ball });
-  S.game.caught++; S.stats.caught++;
-  if (SLOT && attackT > 0) { S.game.balls += 2; addFloat(catcher.cx + 40, catcher.y - 10, '+2 珠', '#ffd166'); }
+  S.game.caught++; S.stats.caught++; stat('entrance'); statMap('balls', ball);
+  if (SLOT && attackT > 0) { S.game.balls += 2; stat('bonusBalls', 2); stat('attackIn'); addFloat(catcher.cx + 40, catcher.y - 10, '+2 珠', '#ffd166'); }
   catcher.f = 1; sfx.catch(); burst(b.x, catcher.y + catcher.depth, ball === 'master' ? '#a78bfa' : '#5ef2ff');
   addFloat(catcher.cx, catcher.y - 34, `${BALL_NAME[ball]} +1`, ball === 'master' ? '#c4b5fd' : ball === 'ultra' ? '#ffd166' : '#5ef2ff');
   if (ball === 'master') toast('哇！入口掉出了大師球！');
@@ -471,6 +491,7 @@ function captureLegend(side) {
 }
 function onPocket(side, b) {
   const pk = pockets[side];
+  stat('pocketIn');
   if (Math.random() < 0.001 + S.charge[side] / 100 * 0.005 || S.charge[side] >= 100) return captureLegend(side);
   S.charge[side] = Math.min(100, S.charge[side] + 0.12);
   pk.state = '捕獲失敗'; pk.st = 1; sfx.fail();
@@ -478,6 +499,7 @@ function onPocket(side, b) {
   if (S.charge[side] >= 100) captureLegend(side);
 }
 function onLost(b) {
+  stat('lost');
   const side = b.x < W / 2 ? 0 : 1;
   S.charge[side] = Math.min(100, S.charge[side] + 0.02);
   if (S.charge[side] >= 100) captureLegend(side);
@@ -505,7 +527,7 @@ function onCup(b) {
   burst(b.x, cup.y + cup.depth, '#ffd166', 10);
   if (sl.hold < HOLD_MAX) { sl.hold++; sfx.hold(); addFloat(cup.x, cup.y - 14, '保留 +1', '#ffd166'); }
   else addFloat(cup.x, cup.y - 14, '保留已滿', '#9aa6c8');
-  S.stats.hold = (S.stats.hold || 0) + 1;
+  stat('hold');
 }
 function startSpin() {
   sl.hold--; S.stats.spins = (S.stats.spins || 0) + 1;
@@ -536,7 +558,7 @@ function startSpin() {
 }
 function onReelStop(i) {
   sfx.reelStop();
-  if (i === 1 && sl.hot) { sl.msg = '聽牌！'; sl.msgT = 0; sfx.reach(); slot.f = 1; }
+  if (i === 1 && sl.hot) { stat('reach'); sl.msg = '聽牌！'; sl.msgT = 0; sfx.reach(); slot.f = 1; }
   if (i !== 2) return;
   sl.qmark = false;
   if (sl.win) jackpot(sl.result[0]);
@@ -545,7 +567,7 @@ function onReelStop(i) {
 function jackpot(id) {
   const premium = id === 25;
   sl.state = 'win'; sl.idleT = 3; sl.msg = premium ? '超級大獎!!' : '大獎!!'; sl.msgT = 0;
-  S.stats.jackpot = (S.stats.jackpot || 0) + 1;
+  stat('jackpot'); statMap('jpBy', id); if (premium) stat('superJackpot');
   boardFlash(); flashScreen(true); sfx.flash(); sfx.fanfareBig();
   burst(slot.x, slot.y, '#ffd166', 50); burst(slot.x, slot.y, '#ff4fa3', 30); burst(slot.x, slot.y, '#5ef2ff', 30);
   // 三隻同樣的寶可夢 → 開箱時剛好湊 3 隻自動進化
@@ -667,9 +689,10 @@ function queueBurst() {
 function fire() {
   if (isPaused() || S.game.ended) return false;
   if (tiltLock > 0) { toast('TILT 中，等台子解鎖…'); return false; }
-  if (S.game.balls <= 0) { toast('這局的彈珠用完了'); return false; }
+  if (CH !== 'all' && S.game.balls <= 0) { toast('這局的彈珠用完了'); return false; }
   if (balls.length >= MAX_ON_BOARD) return false;
-  S.game.balls--; S.game.shots++; S.stats.shots++;
+  if (CH !== 'all') S.game.balls--;   // 全圖鑑挑戰不限彈珠，只算用了幾顆
+  S.game.shots++; S.stats.shots++;
   balls.push({ x: clamp(launcher.x + (Math.random() - 0.5) * 3, 24, W - 24), y: 30, vx: (Math.random() - 0.5) * 30, vy: 60, r: BALL_R, cool: {}, age: 0, dead: false });
   sfx.drop(); refreshUI();
   return true;
@@ -678,12 +701,12 @@ function doShake(dir) {
   if (isPaused() || tiltLock > 0 || S.game.ended) return;
   tilt += 36;
   if (tilt > 100) {
-    tilt = 0; tiltLock = 3.5; sfx.tilt();
+    tilt = 0; tiltLock = 3.5; sfx.tilt(); stat('tilts');
     $('tiltMsg').classList.add('show'); toast('搖太兇了！台子鎖住 3.5 秒');
     return;
   }
   for (const b of balls) { b.vx += dir * (180 + Math.random() * 90); b.vy -= 110; }
-  shakeT = 0.28; shakeDir = dir; sfx.shake();
+  shakeT = 0.28; shakeDir = dir; sfx.shake(); stat('shakes');
 }
 const toCanvas = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height }; };
 cv.addEventListener('pointerdown', e => {
@@ -707,6 +730,7 @@ window.addEventListener('keydown', e => {
   else if (k === 'p' || k === 'escape') { if (!anyModal()) togglePause(); }
   else if (k === 'b') { if (!anyModal()) openRound(); }
   else if (k === 'd') { if (!anyModal()) openDex(); }
+  else if (k === 's') { if (!anyModal()) openStats(); }
 });
 window.addEventListener('keyup', e => { const k = e.key.toLowerCase(); keys[k] = false; if (k === ' ') holding = false; });
 function bindPress(el, fn) { el.addEventListener('pointerdown', e => { e.preventDefault(); AU.init(); fn(); }); }
@@ -761,7 +785,7 @@ function update(dt) {
   if (roundLeft <= 0) { roundLeft = ROUND_SEC; if (S.box.length) openRound(); }
 
   // 100 顆用完且台面清空 → 結算
-  if (!S.game.ended && S.game.balls <= 0 && !balls.length) {
+  if (!S.game.ended && CH !== 'all' && S.game.balls <= 0 && !balls.length) {
     S.game.ended = true; pendingSummary = true;
     if (S.box.length) openRound(); else { pendingSummary = false; showSummary(); }
   }
@@ -911,10 +935,10 @@ function setK(k, v) { document.querySelectorAll(`[data-k="${k}"]`).forEach(e => 
 function setBar(k, r) { document.querySelectorAll(`[data-bar="${k}"]`).forEach(e => { e.style.width = (r * 100).toFixed(1) + '%'; }); }
 function refreshUI() {
   const dc = dexCount(), sc = shinyCount(), lc = legendCount();
-  setK('balls', S.game.balls); setK('dex', dc); setK('shiny', sc); setK('legend', lc);
+  setK('balls', CH === 'all' ? `已用 ${S.game.shots}` : S.game.balls); setK('dex', dc); setK('shiny', sc); setK('legend', lc);
   setK('caught', S.game.caught); setK('shots', S.game.shots); setK('newdex', S.game.newDex);
   setBar('dex', dc / 151); setBar('shiny', sc / 151); setBar('legend', lc / 5);
-  $('ammoChip').classList.toggle('low', S.game.balls <= 10);
+  $('ammoChip').classList.toggle('low', CH !== 'all' && S.game.balls <= 10);
   $('boxCnt').textContent = S.box.length;
   $('btnBox').classList.toggle('ready', S.box.length > 0);
 }
@@ -976,7 +1000,7 @@ function syncPauseUI() {
   $('btnPause').classList.toggle('on', u);
   $('drPause').textContent = u ? '▶ 繼續' : '⏸ 暫停';
 }
-const anyModal = () => ['mReveal', 'mDex', 'mSum'].some(id => $(id).classList.contains('show')) || $('drawer').classList.contains('show');
+const anyModal = () => ['mReveal', 'mDex', 'mSum', 'mStats'].some(id => $(id).classList.contains('show')) || $('drawer').classList.contains('show');
 function openDrawer() { $('drawer').classList.add('show'); $('scrim').classList.add('show'); pause('drawer'); }
 function closeDrawer() { $('drawer').classList.remove('show'); $('scrim').classList.remove('show'); resume('drawer'); }
 $('btnPause').addEventListener('click', () => { AU.init(); togglePause(); });
@@ -988,12 +1012,12 @@ $('drPause').addEventListener('click', () => { togglePause(); closeDrawer(); });
 $('drDex').addEventListener('click', () => { closeDrawer(); openDex(); });
 $('drBox').addEventListener('click', () => { closeDrawer(); openRound(); });
 $('drNew').addEventListener('click', () => {
-  if (!confirm('重開一局會把彈珠重設為 100 顆（圖鑑會保留），確定嗎？')) return;
+  if (!confirm(CH ? '重新挑戰會清掉這次挑戰的進度，確定嗎？' : '重開一局會把彈珠重設為 100 顆（圖鑑會保留），確定嗎？')) return;
   closeDrawer(); startNewGame();
 });
 $('btnBox').addEventListener('click', () => { AU.init(); openRound(); });
-$('drMode').textContent = SLOT ? '🎯 切換到第一版（中央轉盤）' : '🎰 切換到拉霸版';
-$('drMode').addEventListener('click', () => { save(); location.href = location.pathname + (SLOT ? '' : '?mode=slot'); });
+$('drMode').textContent = CH ? '↩︎ 離開挑戰，回拉霸版' : SLOT ? '🎯 傳統版' : '🎰 回到拉霸版';
+$('drMode').addEventListener('click', () => { save(); location.href = selfURL(SLOT && !CH ? 'mode=classic' : ''); });
 function syncSwitches() { $('swMusic').classList.toggle('on', S.music); $('swSfx').classList.toggle('on', S.sfx); }
 $('swMusic').addEventListener('click', () => { AU.init(); S.music = !S.music; AU.setMusic(S.music); syncSwitches(); save(); });
 $('swSfx').addEventListener('click', () => { AU.init(); S.sfx = !S.sfx; AU.setSfx(S.sfx); syncSwitches(); save(); });
@@ -1029,6 +1053,7 @@ function openRound() {
     const score = TIER_RANK[it.tier] + (it.shiny ? 1.5 : 0) + it.id / 1000;
     if (!S.game.best || score > S.game.best.score) S.game.best = { id: it.id, shiny: it.shiny, score };
     S.recent.unshift({ id: it.id, s: it.shiny });
+    stat('got'); statMap('by', it.id); if (it.shiny) stat('shinyGot');
   }
   // 集滿 3 隻相同（非閃光）自動進化，可連鎖
   const evos = [];
@@ -1041,7 +1066,7 @@ function openRound() {
         e.n -= 3;
         const t = dexOf(to), isNew = !t.got;
         t.got = true; t.n++;
-        evos.push({ from: p.id, to, isNew });
+        evos.push({ from: p.id, to, isNew }); stat('evo');
         S.recent.unshift({ id: to, s: false });
         changed = true;
       }
@@ -1050,6 +1075,7 @@ function openRound() {
   S.recent = S.recent.slice(0, 24);
   const after = { dex: dexCount(), shiny: shinyCount(), legend: legendCount() };
   S.game.newDex += after.dex - before.dex;
+  if (CH === 'all' && after.dex >= 151 && !S.game.ended) { S.game.ended = true; pendingSummary = true; }
   save(); refreshUI(); renderRecent();
 
   $('mReveal').classList.add('show');
@@ -1206,25 +1232,51 @@ function showDexUpdate(news, evos, before, after) {
 }
 
 /* ============ 結算 ============ */
+const loadRec = () => { try { return JSON.parse(localStorage.getItem(REC_KEY)) || {}; } catch (e) { return {}; } };
+const saveRec = r => { try { localStorage.setItem(REC_KEY, JSON.stringify(r)); } catch (e) {} };
+const today = () => new Date().toLocaleDateString('zh-TW');
 function showSummary() {
-  const g = S.game;
+  const g = S.game, st = S.stats;
   pause('summary');
   sfx.gameOver();
+  let head = '本局結束', right = `用掉 ${g.shots} 顆`, rec = '';
+  let grid = [['發射', g.shots], ['捕獲', g.caught], ['新登錄', g.newDex], ['閃光', g.shiny]];
+  if (CH) {
+    const r = loadRec(), dc = dexCount(), sc = shinyCount();
+    if (CH === 'all') {
+      const old = r.all, isNew = !old || g.shots < old.score;
+      if (isNew) r.all = { score: g.shots, date: today() };
+      head = '全圖鑑完成！'; right = `共用 ${g.shots} 顆`;
+      rec = isNew ? `🏆 新紀錄！${g.shots} 顆收集滿 151 種` : `最佳紀錄：${old.score} 顆（${old.date}）`;
+      grid = [['用了', g.shots], ['開箱', st.rounds], ['大獎', st.jackpot || 0], ['閃光', g.shiny]];
+    } else {
+      const old = r.b500, isNew = !old || dc > old.score || (dc === old.score && sc > old.shiny);
+      if (isNew) r.b500 = { score: dc, shiny: sc, date: today() };
+      head = `收集到 ${dc} 種！`;
+      rec = isNew ? `🏆 新紀錄！500 顆收集 ${dc} 種` : `最佳紀錄：${old.score} 種（${old.date}）`;
+      grid = [['收集', `${dc}/151`], ['發射', g.shots], ['大獎', st.jackpot || 0], ['閃光', sc]];
+    }
+    saveRec(r); renderRecords();
+  }
+  $('sumHead').textContent = head; $('sumRight').textContent = right; $('sumRec').textContent = rec;
   const best = g.best;
   $('sumBest').innerHTML = best
-    ? `<img src="${imgSrc(best.id, best.shiny)}" alt=""><b>${best.shiny ? '✨' : ''}${P[best.id].zh}</b><small>本局最佳收穫・${TIER_NAME[P[best.id].tier]}</small>`
+    ? `<img src="${imgSrc(best.id, best.shiny)}" alt=""><b>${best.shiny ? '✨' : ''}${P[best.id].zh}</b><small>最佳收穫・${TIER_NAME[P[best.id].tier]}</small>`
     : '<b>這局沒有收穫</b><small>下次瞄準移動的入口試試看！</small>';
-  $('sumGrid').innerHTML = [['發射', g.shots], ['捕獲', g.caught], ['新登錄', g.newDex], ['閃光', g.shiny]]
-    .map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join('');
+  $('sumGrid').innerHTML = grid.map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join('');
+  $('sumAgain').textContent = CH ? '再挑戰一次' : '再來一局（100 顆）';
   $('mSum').classList.add('show');
 }
 function startNewGame() {
-  S.game = newGame(); balls = []; pendingSummary = false; roundLeft = ROUND_SEC;
+  if (CH) { S = Object.assign(fresh(), { music: S.music, sfx: S.sfx }); renderRecent(); }
+  else S.game = newGame();
+  balls = []; pendingSummary = false; roundLeft = ROUND_SEC;
   sl.hold = 0; sl.rush = 0; attackT = 0; AU.setTempo(132);
-  save(); refreshUI(); toast('新的一局開始！共 100 顆彈珠');
+  save(); refreshUI(); toast(CH ? `挑戰開始：${CH_NAME[CH]}` : '新的一局開始！共 100 顆彈珠');
 }
+$('sumExit').addEventListener('click', () => { save(); location.href = selfURL(''); });
 $('sumAgain').addEventListener('click', () => { $('mSum').classList.remove('show'); resume('summary'); startNewGame(); });
-$('sumDex').addEventListener('click', () => { $('mSum').classList.remove('show'); resume('summary'); startNewGame(); openDex(); });
+$('sumDex').addEventListener('click', () => { $('mSum').classList.remove('show'); resume('summary'); if (!CH) startNewGame(); openDex(); });
 
 /* ============ 圖鑑（分頁，不用捲動） ============ */
 let dexFilter = 'all', dexPage = 0;
@@ -1288,6 +1340,49 @@ window.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeDex();
 });
 
+/* ============ 數據統計 ============ */
+const pct = (a, b) => (b ? (a / b * 100).toFixed(1) + '%' : '—');
+function openStats() { pause('stats'); renderStats(); $('mStats').classList.add('show'); }
+function closeStats() { $('mStats').classList.remove('show'); resume('stats'); }
+function renderStats() {
+  const st = S.stats, g = k => st[k] || 0;
+  $('stRight').textContent = CH ? `挑戰：${CH_NAME[CH]}` : SLOT ? '拉霸版' : '傳統版';
+  const tiles = [
+    ['用了幾顆彈珠', g('shots')], ['回收彈珠', g('bonusBalls')], ['入口命中', g('entrance'), pct(g('entrance'), g('shots'))],
+    ...(SLOT ? [['啟動口', g('hold'), pct(g('hold'), g('shots'))], ['拉霸轉動', g('spins')], ['聽牌', g('reach')],
+      ['大獎', g('jackpot'), g('jackpot') ? '1/' + (g('spins') / g('jackpot')).toFixed(1) : ''], ['超級大獎', g('superJackpot')], ['大入賞口', g('attackIn')]]
+      : [['中心閃光', g('center')]]),
+    ['閃電碰撞', g('boltHits')], ['精靈球碰撞', g('pballHits')], ['傳說口袋', g('pocketIn')], ['傳說收服', g('legend')],
+    ['搖台', g('shakes')], ['TILT', g('tilts')], ['開箱次數', g('rounds')], ['得到寶可夢', g('got')], ['閃光', g('shinyGot')], ['進化', g('evo')],
+  ];
+  const balls = st.balls || {};
+  const top = Object.entries(st.by || {}).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  let html = `<div class="stgrid">${tiles.map(([k, v, e]) => `<div class="stile"><small>${k}</small><b>${v}</b>${e ? `<em>${e}</em>` : ''}</div>`).join('')}</div>
+    <div class="stsec"><h4>入口掉出的球</h4><div class="strow">${['poke', 'great', 'ultra', 'master'].map(b => `<span class="chipb"><span class="pb ${b}"></span>${BALL_NAME[b]} <b>${balls[b] || 0}</b></span>`).join('')}</div></div>
+    <div class="stsec"><h4>最常抓到的寶可夢</h4>${top.length ? `<div class="sttop">${top.map(([id, n], i) => `<div><i>${i + 1}</i><img src="${imgSrc(+id)}" alt="">${P[id].zh}<br><b>×${n}</b></div>`).join('')}</div>` : '<div class="empty">開箱後就會開始統計</div>'}</div>`;
+  if (SLOT) html += `<div class="stsec"><h4>大獎圖案</h4><div class="strow jp">${SYMS.map(id => { const n = (st.jpBy || {})[id] || 0; return `<span class="chipb ${n ? '' : 'zero'}"><img src="${imgSrc(id)}" alt="${P[id].zh}"><span class="nm">${P[id].zh}</span> <b>${n}</b></span>`; }).join('')}</div></div>`;
+  $('stBody').innerHTML = html;
+}
+$('stClose').addEventListener('click', closeStats);
+$('drStats').addEventListener('click', () => { closeDrawer(); openStats(); });
+$('sideStats').addEventListener('click', () => { AU.init(); openStats(); });
+$('sideCh').addEventListener('click', () => { AU.init(); openDrawer(); });
+
+/* ============ 挑戰 ============ */
+function renderRecords() {
+  const r = loadRec();
+  document.querySelectorAll('[data-rec="all"]').forEach(e => { e.textContent = r.all ? `最佳：${r.all.score} 顆（${r.all.date}）` : '還沒有紀錄'; });
+  document.querySelectorAll('[data-rec="500"]').forEach(e => { e.textContent = r.b500 ? `最佳：${r.b500.score} 種・閃光 ${r.b500.shiny}（${r.b500.date}）` : '還沒有紀錄'; });
+}
+document.querySelectorAll('.chbtn').forEach(b => b.addEventListener('click', () => {
+  const k = b.dataset.ch;
+  if (!confirm(`開始挑戰「${CH_NAME[k]}」？\n會用全新的圖鑑從零計算，原本的圖鑑不受影響；挑戰中抓到的也會點亮原本的圖鑑。`)) return;
+  save();
+  try { localStorage.removeItem('kantoPachinko.ch.' + k); } catch (e) {}
+  location.href = selfURL('challenge=' + k);
+}));
+if (CH) $('drNew').textContent = '🔄 重新挑戰';
+
 /* ============ 測試工具 ============ */
 $('dbBalls').addEventListener('click', () => { S.game.balls += 100; S.game.ended = false; refreshUI(); toast('測試：+100 彈珠'); });
 $('dbBox').addEventListener('click', () => { for (let i = 0; i < 10; i++) S.box.push({ ball: rollBallType() }); refreshUI(); toast('測試：收集倉 +10'); });
@@ -1319,7 +1414,8 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('beforeunload', save);
 new ResizeObserver(fit).observe(wrapEl);
 window.addEventListener('resize', () => { fit(); if ($('mDex').classList.contains('show')) renderDex(); });
-fit(); syncSwitches(); refreshUI(); renderRecent();
+fit(); syncSwitches(); refreshUI(); renderRecent(); renderRecords();
+if (CH && !S.game.shots && !S.game.ended) setTimeout(() => toast(`挑戰開始：${CH_NAME[CH]}${CH === 'all' ? '（不限彈珠，收集滿 151 種就結束）' : '（共 500 顆）'}`), 400);
 if (S.game.ended) showSummary();
 requestAnimationFrame(frame);
 })();

@@ -239,6 +239,41 @@ details.debug button.on{background:rgba(255,209,102,.3)}
 .pager button{width:40px;height:40px;border-radius:12px;background:var(--glass2);font-size:20px;font-weight:900}
 .pager span{font:800 14px var(--num);min-width:56px;text-align:center}
 
+/* 統計 */
+.stbody{display:flex;flex-direction:column;gap:10px;overflow:auto}
+.stgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:5px}
+.stile{background:rgba(255,255,255,.06);border-radius:10px;padding:4px 8px;min-width:0}
+.stile small{display:block;font-size:10px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stile b{font:800 16px var(--num)}
+.stile em{font:600 9px var(--num);color:var(--cyan);font-style:normal;margin-left:3px}
+.strow{display:flex;gap:6px;flex-wrap:wrap}
+.strow .chipb{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.06);border-radius:10px;padding:4px 10px;font-size:12px;font-weight:700}
+.strow .chipb b{font:800 14px var(--num)}
+.sttop{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.sttop div{background:rgba(255,255,255,.05);border-radius:12px;text-align:center;padding:4px 2px 6px;position:relative;font-size:11px;font-weight:700}
+.sttop div:first-child{background:linear-gradient(rgba(255,209,102,.25),rgba(255,255,255,.04));box-shadow:inset 0 0 0 1.5px rgba(255,209,102,.6)}
+.sttop img{width:100%;aspect-ratio:1;object-fit:contain}
+.sttop i{position:absolute;left:6px;top:4px;font:800 11px var(--num);font-style:normal;color:var(--gold)}
+.stsec h4{margin:0 0 6px;font-size:12px;color:var(--mut);letter-spacing:1px}
+.jp img{width:24px;height:24px;object-fit:contain}
+.strow .chipb{padding:3px 8px}
+@media (max-width:520px){.jp .nm{display:none}.stbody{gap:8px}}
+.jp .chipb.zero{opacity:.35}
+/* 挑戰 */
+.ch-card{display:flex;flex-direction:column;gap:8px}
+.ch-card h3{margin:0}
+.chbtn{text-align:left;background:linear-gradient(135deg,rgba(255,209,102,.16),rgba(167,139,250,.16));border:1px solid rgba(255,209,102,.3);border-radius:12px;padding:9px 12px;display:grid;gap:1px}
+.chbtn b{font-size:14px}
+.chbtn small{font-size:11px;color:var(--mut)}
+.chbtn em{font:700 12px var(--num);font-style:normal;color:var(--gold)}
+.side-btn{background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:12px;font-weight:700;font-size:14px}
+.side-btn:hover{background:var(--glass2)}
+body.challenge .chip.ammo b{color:var(--cyan)}
+.sum-rec{text-align:center;font-weight:900;font-size:15px;color:var(--gold);min-height:0}
+.sum-rec:empty{display:none}
+#sumExit{display:none}
+body.challenge #sumExit{display:inline-block}
+
 /* 結算 */
 .sum{max-width:420px;height:auto;max-height:100%}
 .sum .best{display:flex;flex-direction:column;align-items:center;padding:6px 0 12px}
@@ -275,6 +310,8 @@ body.mode-slot .only-classic,body:not(.mode-slot) .only-slot{display:none !impor
       <h3>本局</h3>
       <div class="kv"><span>剩餘彈珠</span><b data-k="balls">100</b><span>已發射</span><b data-k="shots">0</b><span>捕獲</span><b data-k="caught">0</b><span>新登錄</span><b data-k="newdex">0</b></div>
     </section>
+    <button class="side-btn" id="sideStats">📊 數據統計</button>
+    <button class="side-btn" id="sideCh">🏆 挑戰與紀錄</button>
   </aside>
 
   <main class="stage">
@@ -347,7 +384,13 @@ body.mode-slot .only-classic,body:not(.mode-slot) .only-slot{display:none !impor
       <button id="drDex">📕 圖鑑</button>
       <button id="drBox">🎁 立即開箱</button>
       <button id="drNew">🔄 重開一局</button>
-      <button id="drMode" class="wide"></button>
+      <button id="drStats">📊 數據統計</button>
+      <button id="drMode"></button>
+    </div>
+    <div class="card ch-card">
+      <h3>🏆 挑戰</h3>
+      <button class="chbtn" data-ch="all"><b>全圖鑑最少彈珠</b><small>收集滿 151 種，用的彈珠越少越好</small><em data-rec="all">還沒有紀錄</em></button>
+      <button class="chbtn" data-ch="500"><b>500 顆收集賽</b><small>500 顆彈珠能收集幾種</small><em data-rec="500">還沒有紀錄</em></button>
     </div>
     <div class="card" style="padding:8px 14px">
       <div class="toggle"><span>🎵 背景音樂</span><button class="sw" id="swMusic" aria-label="背景音樂"></button></div>
@@ -407,12 +450,21 @@ body.mode-slot .only-classic,body:not(.mode-slot) .only-slot{display:none !impor
   </div>
 </div>
 
+<div class="modal" id="mStats">
+  <div class="sheet">
+    <div class="sheet-head"><span class="tagc">統計</span><h2>數據統計</h2><span class="right" id="stRight"></span></div>
+    <div class="sheet-body stbody" id="stBody"></div>
+    <div class="sheet-foot"><span class="note">累計數據（每個模式／挑戰分開計算）</span><button class="btn primary" id="stClose">關閉</button></div>
+  </div>
+</div>
+
 <div class="modal" id="mSum">
   <div class="sheet sum">
-    <div class="sheet-head"><span class="tagc">結算</span><h2>本局結束</h2><span class="right">100 顆用完了</span></div>
+    <div class="sheet-head"><span class="tagc">結算</span><h2 id="sumHead">本局結束</h2><span class="right" id="sumRight"></span></div>
+    <div class="sum-rec" id="sumRec"></div>
     <div class="best" id="sumBest"></div>
     <div class="grid4" id="sumGrid"></div>
-    <div class="sheet-foot"><button class="btn ghost" id="sumDex">看圖鑑</button><button class="btn primary" id="sumAgain" style="margin-left:auto">再來一局（100 顆）</button></div>
+    <div class="sheet-foot"><button class="btn ghost" id="sumDex">看圖鑑</button><button class="btn ghost" id="sumExit">回拉霸版</button><button class="btn primary" id="sumAgain" style="margin-left:auto">再來一局（100 顆）</button></div>
   </div>
 </div>
 
