@@ -728,7 +728,7 @@ window.addEventListener('keydown', e => {
   else if (k === 'z') doShake(-1);
   else if (k === 'x') doShake(1);
   else if (k === 'p' || k === 'escape') { if (!anyModal()) togglePause(); }
-  else if (k === 'b') { if (!anyModal()) openRound(); }
+  else if (k === 'b') { if (!anyModal()) requestOpen(); }
   else if (k === 'd') { if (!anyModal()) openDex(); }
   else if (k === 's') { if (!anyModal()) openStats(); }
 });
@@ -782,10 +782,14 @@ function update(dt) {
   floats = floats.filter(f => f.t < 1.2);
 
   roundLeft -= dt;
-  if (roundLeft <= 0) { roundLeft = ROUND_SEC; if (S.box.length) openRound(); }
+  if (roundLeft <= 0) {
+    if (slotBusy()) roundLeft = 0;                 // 拉霸還在轉：等轉完再開箱
+    else { roundLeft = ROUND_SEC; if (S.box.length) openRound(); }
+  }
+  if (wantOpen && !slotBusy()) { wantOpen = false; openRound(); }
 
   // 100 顆用完且台面清空 → 結算
-  if (!S.game.ended && CH !== 'all' && S.game.balls <= 0 && !balls.length) {
+  if (!S.game.ended && CH !== 'all' && S.game.balls <= 0 && !balls.length && !slotBusy() && !(SLOT && sl.hold)) {
     S.game.ended = true; pendingSummary = true;
     if (S.box.length) openRound(); else { pendingSummary = false; showSummary(); }
   }
@@ -1010,12 +1014,12 @@ $('drClose').addEventListener('click', closeDrawer);
 $('scrim').addEventListener('click', closeDrawer);
 $('drPause').addEventListener('click', () => { togglePause(); closeDrawer(); });
 $('drDex').addEventListener('click', () => { closeDrawer(); openDex(); });
-$('drBox').addEventListener('click', () => { closeDrawer(); openRound(); });
+$('drBox').addEventListener('click', () => { closeDrawer(); requestOpen(); });
 $('drNew').addEventListener('click', () => {
   if (!confirm(CH ? '重新挑戰會清掉這次挑戰的進度，確定嗎？' : '重開一局會把彈珠重設為 100 顆（圖鑑會保留），確定嗎？')) return;
   closeDrawer(); startNewGame();
 });
-$('btnBox').addEventListener('click', () => { AU.init(); openRound(); });
+$('btnBox').addEventListener('click', () => { AU.init(); requestOpen(); });
 $('drMode').textContent = CH ? '↩︎ 離開挑戰，回拉霸版' : SLOT ? '🎯 傳統版' : '🎰 回到拉霸版';
 $('drMode').addEventListener('click', () => { save(); location.href = selfURL(SLOT && !CH ? 'mode=classic' : ''); });
 function syncSwitches() { $('swMusic').classList.toggle('on', S.music); $('swSfx').classList.toggle('on', S.sfx); }
@@ -1031,16 +1035,25 @@ const sleep = ms => new Promise(r => {
 });
 function skipAll() { skipping = true; sleepers.forEach(f => f()); sleepers = []; }
 
-function openRound() {
-  if (anyModal()) return;
+// 拉霸在轉、聽牌或大獎演出中
+const slotBusy = () => SLOT && (sl.state === 'spin' || sl.state === 'win' || reels.some(r => r.spin));
+let wantOpen = false;
+function requestOpen() {
   if (!S.box.length) { toast('收集倉是空的，先讓彈珠落進入口吧！'); return; }
+  if (slotBusy()) { wantOpen = true; toast('拉霸轉完就開箱'); return; }
+  openRound();
+}
+// gift：禮物直接給的寶可夢，不經過收集倉
+function openRound(gift) {
+  if (anyModal()) return;
+  if (!gift && !S.box.length) { toast('收集倉是空的，先讓彈珠落進入口吧！'); return; }
   pause('reveal');
-  const items = S.box.map(b => {
+  const items = (gift || S.box).map(b => {
     const id = b.fixed || pickPokemon(b.ball);
     const shiny = !!b.shiny || Math.random() < SHINY_RATE[b.ball];
-    return { id, shiny, ball: b.ball, tier: P[id].tier };
+    return { id, shiny, ball: b.ball, tier: P[id].tier, gift: !!gift };
   });
-  S.box = []; S.stats.rounds++; roundLeft = ROUND_SEC;
+  if (!gift) { S.box = []; S.stats.rounds++; roundLeft = ROUND_SEC; }
 
   const before = { dex: dexCount(), shiny: shinyCount(), legend: legendCount() };
   const news = [];
@@ -1105,7 +1118,7 @@ function fitGrid(el, n, aspect) {
   el.style.gridTemplateColumns = `repeat(${bc}, ${Math.floor(best)}px)`;
   el.style.gridAutoRows = `${Math.floor(best / aspect)}px`;
 }
-const isSpecial = it => it.shiny || it.tier === 'srare' || it.tier === 'legend';
+const isSpecial = it => it.gift || it.shiny || it.tier === 'srare' || it.tier === 'legend';
 function badgesHTML(it) {
   const b = [];
   if (it.isNew) b.push('<span class="badge">NEW</span>');
@@ -1177,7 +1190,8 @@ async function spotlight(it) {
   const sp = $('spot');
   const hint = it.tier === 'legend' ? ['⚡ 傳說反應！！！', '#c4b5fd', 'rgba(167,139,250,.14)']
     : it.shiny ? ['✨ 閃光反應！！', '#ffd166', 'rgba(255,209,102,.13)']
-    : ['★ 超稀有反應！', '#fbbf24', 'rgba(251,191,36,.1)'];
+    : it.tier === 'srare' ? ['★ 超稀有反應！', '#fbbf24', 'rgba(251,191,36,.1)']
+    : ['★ 稀有反應！', '#60a5fa', 'rgba(96,165,250,.1)'];
   sp.className = 'spot show' + (it.shiny ? ' shiny' : '');
   sp.style.setProperty('--hint', hint[1]); sp.style.setProperty('--ray', hint[2]);
   $('spHint').textContent = hint[0];
@@ -1353,7 +1367,7 @@ function renderStats() {
       ['大獎', g('jackpot'), g('jackpot') ? '1/' + (g('spins') / g('jackpot')).toFixed(1) : ''], ['超級大獎', g('superJackpot')], ['大入賞口', g('attackIn')]]
       : [['中心閃光', g('center')]]),
     ['閃電碰撞', g('boltHits')], ['精靈球碰撞', g('pballHits')], ['傳說口袋', g('pocketIn')], ['傳說收服', g('legend')],
-    ['搖台', g('shakes')], ['TILT', g('tilts')], ['開箱次數', g('rounds')], ['得到寶可夢', g('got')], ['閃光', g('shinyGot')], ['進化', g('evo')],
+    ['搖台', g('shakes')], ['TILT', g('tilts')], ['開箱次數', g('rounds')], ['禮物彈珠', g('giftBalls')], ['禮物寶可夢', g('giftPoke')], ['得到寶可夢', g('got')], ['閃光', g('shinyGot')], ['進化', g('evo')],
   ];
   const balls = st.balls || {};
   const top = Object.entries(st.by || {}).sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -1367,6 +1381,23 @@ $('stClose').addEventListener('click', closeStats);
 $('drStats').addEventListener('click', () => { closeDrawer(); openStats(); });
 $('sideStats').addEventListener('click', () => { AU.init(); openStats(); });
 $('sideCh').addEventListener('click', () => { AU.init(); openDrawer(); });
+
+/* ============ 禮物（挑戰中不能用） ============ */
+const RARE_POOL = POOL.filter(p => p.tier === 'rare'), SRARE_POOL = POOL.filter(p => p.tier === 'srare');
+$('giftBalls').addEventListener('click', () => {
+  if (CH) return;
+  closeDrawer();
+  S.game.balls += 100; S.game.ended = false; stat('giftBalls', 100);
+  sfx.reward(); burst(launcher.x, 30, '#ffd166', 30); addFloat(launcher.x, 60, '+100 彈珠');
+  toast('🎁 收到 100 顆彈珠！'); refreshUI(); save();
+});
+$('giftPoke').addEventListener('click', () => {
+  if (CH) return;
+  closeDrawer();
+  const pool = Math.random() < 0.25 ? SRARE_POOL : RARE_POOL;   // 稀有 75%、超稀有 25%
+  stat('giftPoke');
+  openRound([{ ball: 'ultra', fixed: pool[Math.floor(Math.random() * pool.length)].id }]);
+});
 
 /* ============ 挑戰 ============ */
 function renderRecords() {

@@ -269,6 +269,9 @@ details.debug button.on{background:rgba(255,209,102,.3)}
 .side-btn{background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:12px;font-weight:700;font-size:14px}
 .side-btn:hover{background:var(--glass2)}
 body.challenge .chip.ammo b{color:var(--cyan)}
+body.challenge .gift-card{display:none}
+.gift-card h3{margin:0 0 8px}
+.gift-card button{background:linear-gradient(135deg,rgba(255,77,94,.25),rgba(255,209,102,.18))}
 .sum-rec{text-align:center;font-weight:900;font-size:15px;color:var(--gold);min-height:0}
 .sum-rec:empty{display:none}
 #sumExit{display:none}
@@ -386,6 +389,13 @@ body.mode-slot .only-classic,body:not(.mode-slot) .only-slot{display:none !impor
       <button id="drNew">🔄 重開一局</button>
       <button id="drStats">📊 數據統計</button>
       <button id="drMode"></button>
+    </div>
+    <div class="card gift-card">
+      <h3>🎁 禮物</h3>
+      <div class="dr-btns">
+        <button id="giftBalls">🔴 送 100 顆彈珠</button>
+        <button id="giftPoke">✨ 立刻得到稀有寶可夢</button>
+      </div>
     </div>
     <div class="card ch-card">
       <h3>🏆 挑戰</h3>
