@@ -936,12 +936,20 @@ let toastT = null;
 function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2200); }
 let bannerT = null;
 function showBanner({ kind = '', tag, title, sub, img, sil = false, hold = 2600 }) {
-  const el = $('banner'), im = el.querySelector('img');
+  const el = $('banner'), im = freshImg(el.querySelector('img'), img);
   el.className = 'banner ' + kind;
-  im.src = img; im.classList.toggle('sil', sil);
+  im.classList.toggle('sil', sil);
   el.querySelector('.tag').textContent = tag; el.querySelector('b').textContent = title; el.querySelector('.sub').textContent = sub;
   requestAnimationFrame(() => el.classList.add('show'));
   clearTimeout(bannerT); bannerT = setTimeout(() => el.classList.remove('show'), hold);
+}
+// iPhone Safari 有時候拿掉黑影濾鏡後不會重畫，揭曉時直接換一張新的 <img>
+function freshImg(old, src) {
+  const n = document.createElement('img');
+  n.alt = old.alt || ''; n.src = src;
+  if (old.id) n.id = old.id;
+  old.replaceWith(n);
+  return n;
 }
 function boardFlash() { const f = $('bflash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
 function legendBanner(id) {
@@ -950,7 +958,7 @@ function legendBanner(id) {
   setTimeout(() => {
     boardFlash(); sfx.flash(); sfx.fanfareBig();
     const el = $('banner');
-    el.querySelector('img').classList.remove('sil');
+    freshImg(el.querySelector('img'), imgSrc(id));
     el.querySelector('.tag').textContent = '傳說寶可夢';
     el.querySelector('b').textContent = P[id].zh;
     el.querySelector('.sub').textContent = '收服成功！開箱時登錄圖鑑';
@@ -1133,6 +1141,7 @@ async function runReveal(items) {
 }
 function revealCard(card, it) {
   card.classList.remove('sil', 'hot', 'ball'); card.classList.add('show');
+  freshImg(card.querySelector('img'), imgSrc(it.id, it.shiny));
   card.querySelector('.nm').textContent = (it.shiny ? '✨' : '') + P[it.id].zh;
 }
 function flashScreen(rainbow) {
@@ -1146,7 +1155,7 @@ async function spotlight(it) {
   sp.className = 'spot show' + (it.shiny ? ' shiny' : '');
   sp.style.setProperty('--hint', hint[1]); sp.style.setProperty('--ray', hint[2]);
   $('spHint').textContent = hint[0];
-  $('spImg').src = imgSrc(it.id, it.shiny);
+  freshImg($('spImg'), imgSrc(it.id, it.shiny));
   $('spName').textContent = '？？？';
   $('spMeta').innerHTML = `<span class="pb ${it.ball}"></span>${BALL_NAME[it.ball]}`;
   sfx.drumroll(1.5);
@@ -1155,6 +1164,7 @@ async function spotlight(it) {
   flashScreen(it.shiny);
   sfx.flash();
   await sleep(120);
+  freshImg($('spImg'), imgSrc(it.id, it.shiny));
   sp.classList.add('revealed');
   $('spHint').textContent = it.tier === 'legend' ? '傳說寶可夢' : it.shiny ? '閃光寶可夢' : TIER_NAME[it.tier] + '寶可夢';
   $('spName').textContent = P[it.id].zh;

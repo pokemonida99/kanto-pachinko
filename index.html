@@ -48,7 +48,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .banner{position:absolute;left:50%;top:30%;width:min(92%,380px);transform:translate(-50%,-10px) scale(.92);opacity:0;transition:.3s cubic-bezier(.2,1.4,.4,1);pointer-events:none;display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:18px;background:rgba(14,18,48,.88);border:1px solid rgba(167,139,250,.6);box-shadow:0 0 30px rgba(167,139,250,.35);backdrop-filter:blur(10px)}
 .banner.show{opacity:1;transform:translate(-50%,0) scale(1)}
-.banner img{width:76px;height:76px;object-fit:contain;transition:filter .2s}
+.banner img{width:76px;height:76px;object-fit:contain}
 .banner img.sil{filter:brightness(0) drop-shadow(0 0 8px rgba(255,255,255,.8))}
 .banner .tag{display:inline-block;font-size:11px;font-weight:900;padding:1px 8px;border-radius:99px;background:var(--violet);color:#160b33}
 .banner b{display:block;font-size:26px;font-weight:900;line-height:1.25}
@@ -155,7 +155,7 @@ details.debug button.on{background:rgba(255,209,102,.3)}
 .rgrid{display:grid;gap:8px;justify-content:center;align-content:center;height:100%;overflow:auto}
 .rc{position:relative;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid var(--line);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px}
 .rc .no{position:absolute;left:7px;top:5px;font:600 10px var(--num);color:var(--mut)}
-.rc img{width:68%;aspect-ratio:1;object-fit:contain;transition:filter .2s}
+.rc img{width:68%;aspect-ratio:1;object-fit:contain}
 .rc .nm{font-size:13px;font-weight:900;margin-top:2px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .rc .badges{position:absolute;right:5px;top:5px;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
 .badge{font:800 9px/15px var(--num);padding:0 6px;border-radius:6px;background:var(--red);color:#fff;letter-spacing:.5px}
