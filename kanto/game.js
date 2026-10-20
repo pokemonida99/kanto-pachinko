@@ -514,6 +514,12 @@ const RARE_SYMS = SYMS.filter(isRareSym), COMMON_SYMS = SYMS.filter(id => !isRar
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 const NS = SYMS.length;
 const HOLD_MAX = 4, P_JACKPOT = 1 / 16, P_RUSH = 1 / 4, P_REACH_MISS = 1 / 6, RUSH_SPINS = 5, ATTACK_SEC = 12;
+// 拉霸也會送彈珠：對子、稀有聽牌沒中、大獎、超級大獎
+const SLOT_BALLS = { pair: 3, hot: 8, jackpot: 15, superJp: 30 };
+function giveBalls(n, why) {
+  S.game.balls += n; S.game.ended = false; stat('bonusBalls', n); stat('slotBalls', n);
+  addFloat(slot.x, slot.y + slot.h / 2 + 24, `${why} 彈珠 +${n}`, '#ffd166'); sfx.reward(); refreshUI();
+}
 const symImgs = {};
 if (SLOT) SYMS.forEach(id => { const im = new Image(); im.src = imgSrc(id); symImgs[id] = im; });
 const reels = [0, 1, 2].map(i => ({ pos: i * 3, spin: false, speed: 0, stopAt: 0, target: 0, from: 0, to: 0, t0: -1 }));
@@ -562,7 +568,11 @@ function onReelStop(i) {
   if (i !== 2) return;
   sl.qmark = false;
   if (sl.win) jackpot(sl.result[0]);
-  else { if (sl.hot) { sl.msg = '可惜！'; sl.msgT = 0; sfx.miss(); } sl.state = 'cool'; sl.idleT = 0.5; }
+  else {
+    if (sl.hot) { sl.msg = '可惜！'; sl.msgT = 0; sfx.miss(); giveBalls(SLOT_BALLS.hot, '聽牌安慰'); }
+    else if (sl.reach) giveBalls(SLOT_BALLS.pair, '對子');
+    sl.state = 'cool'; sl.idleT = 0.5;
+  }
 }
 function jackpot(id) {
   const premium = id === 25;
@@ -573,6 +583,7 @@ function jackpot(id) {
   // 三隻同樣的寶可夢 → 開箱時剛好湊 3 隻自動進化
   for (let k = 0; k < 3; k++) addToBox({ ball: 'ultra', fixed: id, shiny: premium ? k === 0 : Math.random() < 0.1 });
   S.game.caught += 3; S.stats.caught += 3;
+  giveBalls(premium ? SLOT_BALLS.superJp : SLOT_BALLS.jackpot, premium ? '超級大獎' : '大獎');
   attackT = ATTACK_SEC;
   if (premium) { sl.rush = RUSH_SPINS; AU.setTempo(168); }
   showBanner({ kind: premium ? 'shiny' : '', tag: premium ? '超級大獎' : '大獎', title: `${P[id].zh} ×3`,
@@ -1020,8 +1031,6 @@ $('drNew').addEventListener('click', () => {
   closeDrawer(); startNewGame();
 });
 $('btnBox').addEventListener('click', () => { AU.init(); requestOpen(); });
-$('drMode').textContent = CH ? '↩︎ 離開挑戰，回拉霸版' : SLOT ? '🎯 傳統版' : '🎰 回到拉霸版';
-$('drMode').addEventListener('click', () => { save(); location.href = selfURL(SLOT && !CH ? 'mode=classic' : ''); });
 function syncSwitches() { $('swMusic').classList.toggle('on', S.music); $('swSfx').classList.toggle('on', S.sfx); }
 $('swMusic').addEventListener('click', () => { AU.init(); S.music = !S.music; AU.setMusic(S.music); syncSwitches(); save(); });
 $('swSfx').addEventListener('click', () => { AU.init(); S.sfx = !S.sfx; AU.setSfx(S.sfx); syncSwitches(); save(); });
@@ -1289,6 +1298,7 @@ function startNewGame() {
   save(); refreshUI(); toast(CH ? `挑戰開始：${CH_NAME[CH]}` : '新的一局開始！共 100 顆彈珠');
 }
 $('sumExit').addEventListener('click', () => { save(); location.href = selfURL(''); });
+$('drLobby').addEventListener('click', () => { save(); location.href = '../'; });
 $('sumAgain').addEventListener('click', () => { $('mSum').classList.remove('show'); resume('summary'); startNewGame(); });
 $('sumDex').addEventListener('click', () => { $('mSum').classList.remove('show'); resume('summary'); if (!CH) startNewGame(); openDex(); });
 
