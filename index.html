@@ -17,40 +17,38 @@
 html,body{margin:0;min-height:100%;background:var(--bg0);color:var(--txt);font-family:"Noto Sans TC",system-ui,sans-serif;overflow-x:hidden}
 body{background:radial-gradient(ellipse 80% 50% at 50% -5%,#1d2a6b 0%,transparent 60%),radial-gradient(ellipse 60% 50% at 100% 100%,#3a1250 0%,transparent 60%),var(--bg0);min-height:100dvh;display:flex;flex-direction:column}
 a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;touch-action:manipulation}
 
-/* 背景：點陣 + 飄浮精靈球 */
+/* 背景 */
 .dots{position:fixed;inset:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1.2px);background-size:18px 18px;mask-image:linear-gradient(#000 40%,transparent)}
 .orbs{position:fixed;inset:0;pointer-events:none;overflow:hidden}
-.orb{position:absolute;bottom:-80px;width:var(--s);height:var(--s);border-radius:50%;opacity:.22;
-  background:linear-gradient(var(--c) 0 46%,#0b0f24 46% 54%,#f4f6ff 54%);box-shadow:0 0 0 2px #0b0f24;
-  animation:rise var(--d) linear infinite;animation-delay:var(--dl)}
+.orb{position:absolute;bottom:-80px;width:var(--s);height:var(--s);border-radius:50%;opacity:.22;background:linear-gradient(var(--c) 0 46%,#0b0f24 46% 54%,#f4f6ff 54%);box-shadow:0 0 0 2px #0b0f24;animation:rise var(--d) linear infinite;animation-delay:var(--dl)}
 .orb::after{content:"";position:absolute;inset:38%;border-radius:50%;background:#f4f6ff;box-shadow:0 0 0 2px #0b0f24}
 @keyframes rise{0%{transform:translateY(0) rotate(0)}100%{transform:translateY(-120vh) rotate(420deg)}}
 
 /* 版面 */
-.wrap{position:relative;z-index:1;width:min(100%,1120px);margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));flex:1;display:flex;flex-direction:column;gap:18px}
+.wrap{position:relative;z-index:1;width:min(100%,1180px);margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));flex:1;display:flex;flex-direction:column;gap:22px}
 header{display:flex;align-items:center;gap:12px}
 .logo{width:40px;height:40px;border-radius:50%;flex:none;background:linear-gradient(var(--red) 0 46%,#0b0f24 46% 54%,#f4f6ff 54%);box-shadow:0 0 0 2px #0b0f24,0 0 18px rgba(255,77,94,.55);position:relative;animation:spin 6s linear infinite}
 .logo::after{content:"";position:absolute;inset:36%;border-radius:50%;background:#f4f6ff;box-shadow:0 0 0 3px #0b0f24}
 @keyframes spin{to{transform:rotate(360deg)}}
 header h1{margin:0;font-size:22px;font-weight:900;letter-spacing:1px;line-height:1.1}
 header small{display:block;font:600 11px var(--num);color:var(--mut);letter-spacing:3px;margin-top:3px}
-.hint{margin-left:auto;font-size:12px;color:var(--mut);text-align:right;line-height:1.5}
+.lucky{margin-left:auto;height:44px;padding:0 16px;border-radius:14px;background:linear-gradient(135deg,var(--gold),#ff9f43);color:#141b3f;font-weight:900;font-size:14px;display:flex;align-items:center;gap:6px;box-shadow:0 8px 20px rgba(255,209,102,.3);white-space:nowrap}
+.lucky:active{transform:scale(.96)}
 
-/* 皮卡丘打招呼 */
-.greet{display:flex;align-items:flex-end;gap:14px;min-height:170px;position:relative}
-.pika{width:170px;height:170px;flex:none;position:relative;transform:translateY(120%);opacity:0;animation:popin .9s cubic-bezier(.2,1.5,.4,1) .25s forwards}
+/* 皮卡丘 */
+.greet{display:flex;align-items:flex-end;gap:14px;min-height:160px;position:relative}
+.pika{width:160px;height:160px;flex:none;position:relative;transform:translateY(120%);opacity:0;animation:popin .9s cubic-bezier(.2,1.5,.4,1) .25s forwards}
 .pika img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 12px 18px rgba(0,0,0,.55)) drop-shadow(0 0 22px rgba(255,209,102,.25));animation:bob 2.4s ease-in-out 1.2s infinite;transform-origin:50% 100%;cursor:pointer}
 .pika.hi img{animation:wave .7s ease-in-out}
 .pika .spark{position:absolute;font-size:22px;animation:twinkle 1.6s ease-in-out infinite;pointer-events:none}
-.pika .spark:nth-child(2){left:-6px;top:28px}
-.pika .spark:nth-child(3){right:-4px;top:12px;animation-delay:.5s}
-.pika .spark:nth-child(4){right:10px;bottom:30px;animation-delay:1s;font-size:16px}
+.pika .spark:nth-child(2){left:-6px;top:28px}.pika .spark:nth-child(3){right:-4px;top:12px;animation-delay:.5s}.pika .spark:nth-child(4){right:10px;bottom:30px;animation-delay:1s;font-size:16px}
 @keyframes popin{to{transform:none;opacity:1}}
 @keyframes bob{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-10px) rotate(-3deg)}60%{transform:translateY(-4px) rotate(2deg)}}
 @keyframes wave{0%,100%{transform:rotate(0)}25%{transform:rotate(-10deg) scale(1.06)}50%{transform:rotate(8deg) scale(1.06)}75%{transform:rotate(-6deg)}}
 @keyframes twinkle{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:1;transform:scale(1.15)}}
-.bubble{position:relative;background:#fff;color:#141b3f;border-radius:18px;padding:12px 16px;font-size:16px;font-weight:900;line-height:1.5;max-width:360px;opacity:0;transform:translateY(8px) scale(.9);transform-origin:0 100%;animation:bubblein .4s cubic-bezier(.2,1.4,.4,1) 1.05s forwards;box-shadow:0 10px 30px rgba(0,0,0,.4);margin-bottom:34px}
+.bubble{position:relative;background:#fff;color:#141b3f;border-radius:18px;padding:12px 16px;font-size:16px;font-weight:900;line-height:1.5;max-width:360px;opacity:0;transform:translateY(8px) scale(.9);transform-origin:0 100%;animation:bubblein .4s cubic-bezier(.2,1.4,.4,1) 1.05s forwards;box-shadow:0 10px 30px rgba(0,0,0,.4);margin-bottom:30px}
 .bubble::before{content:"";position:absolute;left:-10px;bottom:16px;border:10px solid transparent;border-right-color:#fff;border-left:0}
 .bubble small{display:block;font-weight:700;font-size:12px;color:#5a6490;margin-top:2px}
 .bubble .t::after{content:"";display:inline-block;width:2px;height:1em;background:#141b3f;vertical-align:-2px;margin-left:2px;animation:blink .8s step-end infinite}
@@ -58,57 +56,101 @@ header small{display:block;font:600 11px var(--num);color:var(--mut);letter-spac
 @keyframes bubblein{to{opacity:1;transform:none}}
 @keyframes blink{50%{opacity:0}}
 
-/* 三台機台 */
-.cabs{display:grid;grid-template-columns:1fr;gap:14px}
-.cab{position:relative;display:flex;flex-direction:column;gap:10px;padding:16px 16px 14px;border-radius:22px;background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(10px);overflow:hidden;transition:transform .25s cubic-bezier(.2,1.4,.4,1),box-shadow .25s;opacity:0;transform:translateY(24px);animation:cabin .6s cubic-bezier(.2,1.3,.4,1) forwards}
-.cab:nth-child(1){animation-delay:1.3s}.cab:nth-child(2){animation-delay:1.45s}.cab:nth-child(3){animation-delay:1.6s}
-@keyframes cabin{to{opacity:1;transform:none}}
-.cab::before{content:"";position:absolute;inset:0;background:var(--glow);opacity:.9;pointer-events:none}
-.cab:hover{transform:translateY(-4px) scale(1.015);box-shadow:0 0 0 1px var(--acc),0 0 36px color-mix(in srgb,var(--acc) 40%,transparent),0 24px 50px rgba(0,0,0,.5)}
+/* 全國圖鑑牆 */
+.wall{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:22px;background:linear-gradient(135deg,rgba(255,209,102,.12),rgba(167,139,250,.12));border:1px solid rgba(255,209,102,.35);cursor:pointer;transition:transform .2s}
+.wall:active{transform:scale(.99)}
+.wall .row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.wall h2{margin:0;font-size:18px;font-weight:900}
+.wall .big{font:800 30px var(--num);color:var(--gold);line-height:1}
+.wall .big i{font-style:normal;font-size:14px;color:var(--mut)}
+.wall .hint{margin-left:auto;font-size:12px;color:var(--mut)}
+.gens{display:grid;grid-template-columns:repeat(9,1fr);gap:4px}
+.gens span{height:8px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;position:relative}
+.gens span i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--gold);transition:width 1s}
+.gens small{grid-row:2;font:600 10px var(--num);color:var(--mut);text-align:center}
+
+/* 機台 */
+.sec h3{margin:0 0 10px;font-size:14px;color:var(--mut);letter-spacing:2px;font-weight:700;display:flex;align-items:center;gap:8px}
+.sec h3::after{content:"";flex:1;height:1px;background:var(--line)}
+.cabs{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 4px 10px;margin:0 -4px;scrollbar-width:none}
+.cabs::-webkit-scrollbar{display:none}
+.cab{flex:0 0 min(78vw,300px);scroll-snap-align:start;position:relative;display:flex;flex-direction:column;gap:9px;padding:14px 14px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(10px);overflow:hidden;transition:transform .25s cubic-bezier(.2,1.4,.4,1),box-shadow .25s}
+.cab::before{content:"";position:absolute;inset:0;background:var(--glow);pointer-events:none}
+.cab:hover{transform:translateY(-4px);box-shadow:0 0 0 1px var(--acc),0 0 30px color-mix(in srgb,var(--acc) 35%,transparent),0 20px 40px rgba(0,0,0,.5)}
 .cab:active{transform:scale(.985)}
 .cab>*{position:relative}
-.cab .top{display:flex;align-items:center;gap:10px}
-.cab .gen{font:800 12px var(--num);letter-spacing:3px;color:var(--acc)}
-.cab .badge{margin-left:auto;font-size:11px;font-weight:900;padding:3px 9px;border-radius:99px;background:var(--acc);color:#141b3f}
-.cab .badge.soon{background:rgba(255,255,255,.14);color:var(--txt)}
-.cab h2{margin:0;font-size:26px;font-weight:900;line-height:1.15}
-.cab h2 small{display:block;font:600 12px var(--num);color:var(--mut);letter-spacing:2px;margin-top:4px}
-.cab .art{display:flex;gap:6px;align-items:flex-end;height:78px}
-.cab .art img{height:72px;width:72px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5));transition:transform .3s}
+.cab .top{display:flex;align-items:center;gap:8px}
+.cab .gen{font:800 11px var(--num);letter-spacing:2px;color:var(--acc)}
+.cab .badge{margin-left:auto;font-size:11px;font-weight:900;padding:2px 8px;border-radius:99px;background:var(--acc);color:#141b3f;white-space:nowrap}
+.cab h2{margin:0;font-size:22px;font-weight:900;line-height:1.15}
+.cab h2 small{display:block;font:600 11px var(--num);color:var(--mut);letter-spacing:1.5px;margin-top:3px}
+.cab .art{display:flex;gap:4px;align-items:flex-end;height:66px}
+.cab .art img{height:62px;width:62px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5));transition:transform .3s}
 .cab:hover .art img{transform:translateY(-4px)}
-.cab:hover .art img:nth-child(2){transition-delay:.05s}.cab:hover .art img:nth-child(3){transition-delay:.1s}
-.cab .art .sil{filter:brightness(0) drop-shadow(0 0 6px rgba(255,255,255,.55));opacity:.75}
-.cab p{margin:0;font-size:13px;color:var(--mut);line-height:1.65}
+.cab:hover .art img:nth-child(2){transition-delay:.05s}.cab:hover .art img:nth-child(3){transition-delay:.1s}.cab:hover .art img:nth-child(4){transition-delay:.15s}
+.cab p{margin:0;font-size:12.5px;color:var(--mut);line-height:1.6;min-height:3.2em}
 .cab p b{color:var(--txt)}
-.prog{display:grid;grid-template-columns:1fr auto;gap:4px 8px;font-size:12px;color:var(--mut);align-items:end}
-.prog .num{font:800 15px var(--num);color:var(--txt)}
+.prog{display:grid;grid-template-columns:1fr auto;gap:3px 8px;font-size:11px;color:var(--mut);align-items:end}
+.prog .num{font:800 14px var(--num);color:var(--txt)}
 .prog .num i{font-style:normal;color:var(--mut);font-size:11px}
-.prog .bar{grid-column:1/-1;height:6px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}
-.prog .bar i{display:block;height:100%;width:0;border-radius:6px;background:var(--acc);transition:width 1s .8s}
-.cab .go{display:flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:14px;font-weight:900;font-size:15px;background:var(--acc);color:#141b3f;box-shadow:0 8px 20px color-mix(in srgb,var(--acc) 35%,transparent)}
-.cab.soon .go{background:rgba(255,255,255,.12);color:var(--mut);box-shadow:none}
+.prog .bar{grid-column:1/-1;height:5px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden}
+.prog .bar i{display:block;height:100%;width:0;border-radius:5px;background:var(--acc);transition:width 1s .4s}
+.cab .go{display:flex;align-items:center;justify-content:center;gap:8px;height:42px;border-radius:13px;font-weight:900;font-size:14px;background:var(--acc);color:#141b3f}
 
 .k{--acc:#ff6b7a;--glow:radial-gradient(ellipse 70% 60% at 80% 0%,rgba(255,77,94,.22),transparent 60%)}
 .j{--acc:#ffd166;--glow:radial-gradient(ellipse 70% 60% at 80% 0%,rgba(255,209,102,.22),transparent 60%),radial-gradient(ellipse 50% 40% at 10% 100%,rgba(200,210,230,.16),transparent 60%)}
-.h{--acc:#5ef2ff;--glow:radial-gradient(ellipse 60% 60% at 0% 0%,rgba(255,77,94,.22),transparent 60%),radial-gradient(ellipse 60% 60% at 100% 100%,rgba(96,165,250,.26),transparent 60%),radial-gradient(ellipse 40% 40% at 50% 50%,rgba(52,211,153,.14),transparent 60%)}
+.h{--acc:#5ef2ff;--glow:radial-gradient(ellipse 60% 60% at 0% 0%,rgba(255,77,94,.22),transparent 60%),radial-gradient(ellipse 60% 60% at 100% 100%,rgba(96,165,250,.26),transparent 60%)}
+.s{--acc:#c4b5fd;--glow:radial-gradient(ellipse 70% 60% at 80% 0%,rgba(167,139,250,.26),transparent 60%),radial-gradient(ellipse 50% 50% at 10% 100%,rgba(94,242,255,.14),transparent 60%)}
+.u{--acc:#f5f5f5;--glow:radial-gradient(ellipse 70% 60% at 0% 0%,rgba(255,255,255,.18),transparent 60%),radial-gradient(ellipse 50% 50% at 100% 100%,rgba(0,0,0,.5),transparent 60%)}
+.x{--acc:#ff9ad5;--glow:radial-gradient(ellipse 70% 60% at 80% 0%,rgba(255,79,163,.24),transparent 60%),radial-gradient(ellipse 50% 50% at 10% 100%,rgba(96,165,250,.2),transparent 60%)}
+.a{--acc:#ffb347;--glow:radial-gradient(ellipse 70% 60% at 80% 0%,rgba(255,179,71,.26),transparent 60%),radial-gradient(ellipse 50% 50% at 10% 100%,rgba(52,211,153,.18),transparent 60%)}
+.g{--acc:#7dd3fc;--glow:radial-gradient(ellipse 70% 60% at 80% 0%,rgba(125,211,252,.24),transparent 60%),radial-gradient(ellipse 50% 50% at 10% 100%,rgba(244,63,94,.18),transparent 60%)}
+.p{--acc:#a3e635;--glow:radial-gradient(ellipse 70% 60% at 80% 0%,rgba(163,230,53,.22),transparent 60%),radial-gradient(ellipse 50% 50% at 10% 100%,rgba(248,113,113,.18),transparent 60%)}
+.f{--acc:#38bdf8;--glow:radial-gradient(ellipse 80% 70% at 50% 100%,rgba(56,189,248,.28),transparent 60%)}
+.c{--acc:#fb7185;--glow:radial-gradient(ellipse 70% 60% at 80% 0%,rgba(251,113,133,.24),transparent 60%),radial-gradient(ellipse 50% 50% at 10% 100%,rgba(255,209,102,.18),transparent 60%)}
 
 footer{font-size:11px;color:var(--mut);line-height:1.7;text-align:center;opacity:.8}
 .runner{position:fixed;left:-80px;bottom:calc(6px + env(safe-area-inset-bottom));width:60px;height:60px;image-rendering:pixelated;animation:run 14s linear 3s infinite;pointer-events:none;z-index:2}
 @keyframes run{0%{transform:translateX(0) scaleX(-1)}100%{transform:translateX(calc(100vw + 160px)) scaleX(-1)}}
 
+/* 全國圖鑑 modal */
+.modal{position:fixed;inset:0;z-index:50;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
+.modal.show{display:flex}
+.sheet{width:min(100%,900px);max-height:92dvh;background:#0d1230;border:1px solid var(--line);border-radius:22px 22px 0 0;display:flex;flex-direction:column;padding:14px 14px calc(14px + env(safe-area-inset-bottom))}
+.sheet-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.sheet-head h2{margin:0;font-size:18px;font-weight:900}
+.sheet-head .right{margin-left:auto;font:800 16px var(--num);color:var(--gold)}
+.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:6px;flex:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none;padding:7px 12px;border-radius:99px;background:var(--glass);border:1px solid var(--line);font-size:12px;font-weight:800;white-space:nowrap}
+.tabs button.on{background:var(--gold);color:#141b3f;border-color:var(--gold)}
+.dexgrid{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;padding:4px 2px;align-content:start}
+.dcell{aspect-ratio:1;border-radius:12px;background:rgba(255,255,255,.05);display:grid;place-items:center;position:relative;overflow:hidden}
+.dcell img{width:84%;height:84%;object-fit:contain}
+.dcell.miss img{filter:brightness(0);opacity:.25}
+.dcell.sh{box-shadow:inset 0 0 0 1.5px var(--gold)}
+.dcell .n{position:absolute;left:5px;top:3px;font:700 9px var(--num);color:var(--mut)}
+.dcell .nm{position:absolute;left:0;right:0;bottom:2px;font-size:9px;text-align:center;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 3px}
+.dcell.miss .nm{color:var(--mut)}
+.sheet-foot{display:flex;align-items:center;gap:10px;margin-top:10px}
+.sheet-foot .note{font-size:12px;color:var(--mut);flex:1}
+.btn{height:40px;padding:0 16px;border-radius:12px;background:var(--gold);color:#141b3f;font-weight:900}
+
 @media (min-width:860px){
-  .wrap{gap:26px;padding-top:28px;justify-content:center}
+  .wrap{gap:28px;padding-top:28px}
   header h1{font-size:28px}
-  .greet{min-height:220px}
-  .pika{width:230px;height:230px}
-  .bubble{font-size:20px;max-width:460px;padding:16px 22px;margin-bottom:56px}
-  .cabs{grid-template-columns:repeat(3,1fr);gap:18px}
-  .cab{padding:20px 20px 18px}
-  .cab h2{font-size:28px}
+  .greet{min-height:200px}
+  .pika{width:210px;height:210px}
+  .bubble{font-size:19px;max-width:460px;padding:16px 22px;margin-bottom:50px}
+  .cabs{display:grid;grid-template-columns:repeat(3,1fr);overflow:visible;gap:16px;padding:4px}
+  .cab{flex:none}
+  .cab h2{font-size:24px}
+  .sheet{border-radius:22px;max-height:86dvh;margin-bottom:4vh}
+  .modal{align-items:center}
+  .dexgrid{grid-template-columns:repeat(auto-fill,minmax(76px,1fr))}
 }
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;animation-delay:0s!important}}
-/* 保險：進場動畫跑完（或沒跑）之後一律顯示 */
-body.settled .pika,body.settled .cab,body.settled .bubble{opacity:1;transform:none;animation:none}
+body.settled .pika,body.settled .bubble{opacity:1;transform:none;animation:none}
 </style>
 </head>
 <body>
@@ -120,7 +162,7 @@ body.settled .pika,body.settled .cab,body.settled .bubble{opacity:1;transform:no
   <header>
     <span class="logo"></span>
     <div><h1>寶可夢彈珠研究所</h1><small>POKÉMON PACHINKO LAB</small></div>
-    <div class="hint">選一台機台開始<br>圖鑑各自存在這個瀏覽器</div>
+    <button class="lucky" id="lucky">🎲 隨便玩一台</button>
   </header>
 
   <section class="greet">
@@ -131,43 +173,131 @@ body.settled .pika,body.settled .cab,body.settled .bubble{opacity:1;transform:no
     <div class="bubble" id="bubble"><span class="t" id="bubbleT"></span><small id="bubbleS"></small></div>
   </section>
 
-  <section class="cabs">
-    <a class="cab k" href="kanto/" data-dex="kantoPachinko.dex" data-total="151">
-      <div class="top"><span class="gen">GEN 1 · KANTO</span><span class="badge">拉霸台</span></div>
-      <h2>無印・關都<small>關都圖鑑 151 隻 · 拉霸轉盤</small></h2>
-      <div class="art"><img src="kanto/assets/n1.webp" alt=""><img src="kanto/assets/n4.webp" alt=""><img src="kanto/assets/n7.webp" alt=""><img src="kanto/assets/n25.webp" alt=""></div>
-      <p>經典三格拉霸，三隻同圖案＝大獎、三隻皮卡丘＝<b>皮卡丘 RUSH</b>。對子、聽牌、大獎都會送彈珠。</p>
-      <div class="prog"><span>圖鑑進度</span><span class="num"><b data-got>0</b><i> / 151</i></span><span class="bar"><i data-bar></i></span></div>
-      <span class="go">▶ 開始遊玩</span>
-    </a>
-    <a class="cab j" href="johto/" data-dex="johtoPachinko.dex" data-total="251">
-      <div class="top"><span class="gen">GEN 2 · JOHTO</span><span class="badge">NEW</span></div>
-      <h2>金・銀・城都<small>城都圖鑑 251 隻 · 輪盤 × 日夜 × 金銀珠</small></h2>
-      <div class="art"><img src="johto/assets/n152.webp" alt=""><img src="johto/assets/n155.webp" alt=""><img src="johto/assets/n158.webp" alt=""><img src="johto/assets/n172.webp" alt=""></div>
-      <p>拉桿蓄力發射、會轉的<b>大輪盤</b>送彈珠與蛋、日夜輪替換出場名單，還有<b>金珠</b>與<b>銀珠</b>兩種性質不同的珠。</p>
-      <div class="prog"><span>圖鑑進度</span><span class="num"><b data-got>0</b><i> / 251</i></span><span class="bar"><i data-bar></i></span></div>
-      <span class="go">▶ 開始遊玩</span>
-    </a>
-    <a class="cab h" href="hoenn/" data-dex="hoennPachinko.dex" data-total="202">
-      <div class="top"><span class="gen">GEN 3 · HOENN</span><span class="badge">NEW · 翻板</span></div>
-      <h2>紅・藍寶石・豐緣<small>豐緣圖鑑 202 隻 · 翻板 × 天氣 × 寶石珠</small></h2>
-      <div class="art"><img src="hoenn/assets/n252.webp" alt=""><img src="hoenn/assets/n255.webp" alt=""><img src="hoenn/assets/n258.webp" alt=""><img src="hoenn/assets/n384.webp" alt=""></div>
-      <p>台面下方兩側有<b>翻板</b>，把快掉下去的珠往上打回去；天氣輪替改變台面，<b>紅・藍・綠寶石珠</b>各有特技。</p>
-      <div class="prog"><span>圖鑑進度</span><span class="num"><b data-got>0</b><i> / 202</i></span><span class="bar"><i data-bar></i></span></div>
-      <span class="go">▶ 開始遊玩</span>
-    </a>
+  <section class="wall" id="wall" role="button">
+    <div class="row"><h2>📕 全國圖鑑</h2><span class="big"><b id="wallGot">0</b><i> / 1025</i></span><span class="hint">每台抓到的都算 · 點開看</span></div>
+    <div class="gens" id="gens"></div>
   </section>
 
-  <footer>純 HTML／Canvas，直接在瀏覽器玩，不用安裝。資料與圖片來自 PokeAPI；Pokémon 相關權利屬 Nintendo / Creatures Inc. / GAME FREAK inc.，本專案為非營利粉絲作品。</footer>
+  <section class="sec">
+    <h3>各世代機台</h3>
+    <div class="cabs">
+      <a class="cab k" href="kanto/" data-key="kantoPachinko" data-total="151">
+        <div class="top"><span class="gen">GEN 1 · 關都</span><span class="badge">拉霸台</span></div>
+        <h2>無印・關都<small>關都圖鑑 151 隻</small></h2>
+        <div class="art"><img src="all/assets/n1.webp" alt=""><img src="all/assets/n4.webp" alt=""><img src="all/assets/n7.webp" alt=""><img src="all/assets/n25.webp" alt=""></div>
+        <p>點台面發射，三格拉霸，三隻皮卡丘＝<b>皮卡丘 RUSH</b>。拉霸會送彈珠。</p>
+        <div class="prog"><span>圖鑑</span><span class="num"><b data-got>0</b><i> / 151</i></span><span class="bar"><i data-bar></i></span></div>
+        <span class="go">▶ 開始</span>
+      </a>
+      <a class="cab j" href="johto/" data-key="johtoPachinko" data-total="251">
+        <div class="top"><span class="gen">GEN 2 · 城都</span><span class="badge">輪盤台</span></div>
+        <h2>金・銀・城都<small>城都圖鑑 251 隻</small></h2>
+        <div class="art"><img src="all/assets/n152.webp" alt=""><img src="all/assets/n155.webp" alt=""><img src="all/assets/n158.webp" alt=""><img src="all/assets/n172.webp" alt=""></div>
+        <p>拉桿蓄力、<b>大輪盤</b>送珠與蛋、日夜輪替，金珠與銀珠。</p>
+        <div class="prog"><span>圖鑑</span><span class="num"><b data-got>0</b><i> / 251</i></span><span class="bar"><i data-bar></i></span></div>
+        <span class="go">▶ 開始</span>
+      </a>
+      <a class="cab h" href="hoenn/" data-key="hoennPachinko" data-total="202">
+        <div class="top"><span class="gen">GEN 3 · 豐緣</span><span class="badge">翻板台</span></div>
+        <h2>紅・藍寶石・豐緣<small>豐緣圖鑑 202 隻</small></h2>
+        <div class="art"><img src="all/assets/n252.webp" alt=""><img src="all/assets/n255.webp" alt=""><img src="all/assets/n258.webp" alt=""><img src="all/assets/n384.webp" alt=""></div>
+        <p>底部兩側<b>翻板</b>往上打、天氣輪替，紅藍綠寶石珠各有特技。</p>
+        <div class="prog"><span>圖鑑</span><span class="num"><b data-got>0</b><i> / 202</i></span><span class="bar"><i data-bar></i></span></div>
+        <span class="go">▶ 開始</span>
+      </a>
+      <a class="cab s" href="sinnoh/" data-key="sinnohPachinko" data-total="210">
+        <div class="top"><span class="gen">GEN 4 · 神奧</span><span class="badge">推幣機</span></div>
+        <h2>鑽石・珍珠・神奧<small>神奧圖鑑 210 隻</small></h2>
+        <div class="art"><img src="all/assets/n387.webp" alt=""><img src="all/assets/n390.webp" alt=""><img src="all/assets/n393.webp" alt=""><img src="all/assets/n483.webp" alt=""></div>
+        <p>投珠進去，平台前後推，<b>玩偶被推下來就是抓到</b>。夜市那台。</p>
+        <div class="prog"><span>圖鑑</span><span class="num"><b data-got>0</b><i> / 210</i></span><span class="bar"><i data-bar></i></span></div>
+        <span class="go">▶ 開始</span>
+      </a>
+      <a class="cab u" href="unova/" data-key="unovaPachinko" data-total="301">
+        <div class="top"><span class="gen">GEN 5 · 合眾</span><span class="badge">打磚台</span></div>
+        <h2>黑・白・合眾<small>合眾圖鑑 301 隻</small></h2>
+        <div class="art"><img src="all/assets/n495.webp" alt=""><img src="all/assets/n498.webp" alt=""><img src="all/assets/n501.webp" alt=""><img src="all/assets/n643.webp" alt=""></div>
+        <p>一顆珠射下去打釘子，<b>打到亮釘就抓到</b>，清台換季節。</p>
+        <div class="prog"><span>圖鑑</span><span class="num"><b data-got>0</b><i> / 301</i></span><span class="bar"><i data-bar></i></span></div>
+        <span class="go">▶ 開始</span>
+      </a>
+      <a class="cab x" href="kalos/" data-key="kalosPachinko" data-total="457">
+        <div class="top"><span class="gen">GEN 6 · 卡洛斯</span><span class="badge">卡包台</span></div>
+        <h2>X・Y・卡洛斯<small>卡洛斯圖鑑 457 隻</small></h2>
+        <div class="art"><img src="all/assets/n650.webp" alt=""><img src="all/assets/n653.webp" alt=""><img src="all/assets/n656.webp" alt=""><img src="all/assets/n716.webp" alt=""></div>
+        <p>撕開卡包一張張翻，<b>閃卡會反光</b>。中央、海岸、山岳三套。</p>
+        <div class="prog"><span>圖鑑</span><span class="num"><b data-got>0</b><i> / 457</i></span><span class="bar"><i data-bar></i></span></div>
+        <span class="go">▶ 開始</span>
+      </a>
+      <a class="cab a" href="alola/" data-key="alolaPachinko" data-total="403">
+        <div class="top"><span class="gen">GEN 7 · 阿羅拉</span><span class="badge">散步台</span></div>
+        <h2>太陽・月亮・阿羅拉<small>阿羅拉圖鑑 403 隻</small></h2>
+        <div class="art"><img src="all/assets/n722.webp" alt=""><img src="all/assets/n725.webp" alt=""><img src="all/assets/n728.webp" alt=""><img src="all/assets/n791.webp" alt=""></div>
+        <p>在四座島的草叢<b>自動散步</b>，草叢一動就丟球。</p>
+        <div class="prog"><span>圖鑑</span><span class="num"><b data-got>0</b><i> / 403</i></span><span class="bar"><i data-bar></i></span></div>
+        <span class="go">▶ 開始</span>
+      </a>
+      <a class="cab g" href="galar/" data-key="galarPachinko" data-total="400">
+        <div class="top"><span class="gen">GEN 8 · 伽勒爾</span><span class="badge">落珠板</span></div>
+        <h2>劍・盾・伽勒爾<small>伽勒爾圖鑑 400 隻</small></h2>
+        <div class="art"><img src="all/assets/n810.webp" alt=""><img src="all/assets/n813.webp" alt=""><img src="all/assets/n816.webp" alt=""><img src="all/assets/n888.webp" alt=""></div>
+        <p>珠從頂端放下，<b>一路彈到底下的格子</b>，格子寫著誰就得到誰。極巨珠會變大。</p>
+        <div class="prog"><span>圖鑑</span><span class="num"><b data-got>0</b><i> / 400</i></span><span class="bar"><i data-bar></i></span></div>
+        <span class="go">▶ 開始</span>
+      </a>
+      <a class="cab p" href="paldea/" data-key="paldeaPachinko" data-total="400">
+        <div class="top"><span class="gen">GEN 9 · 帕底亞</span><span class="badge">刮刮樂</span></div>
+        <h2>朱・紫・帕底亞<small>帕底亞圖鑑 400 隻</small></h2>
+        <div class="art"><img src="all/assets/n906.webp" alt=""><img src="all/assets/n909.webp" alt=""><img src="all/assets/n912.webp" alt=""><img src="all/assets/n1007.webp" alt=""></div>
+        <p>手指刮開塗層，<b>三個同圖案就得到</b>。太晶 18 色卡面。</p>
+        <div class="prog"><span>圖鑑</span><span class="num"><b data-got>0</b><i> / 400</i></span><span class="bar"><i data-bar></i></span></div>
+        <span class="go">▶ 開始</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h3>跨世代機台</h3>
+    <div class="cabs">
+      <a class="cab f" href="fishing/" data-key="fishingPachinko" data-total="water">
+        <div class="top"><span class="gen">ALL · 釣魚</span><span class="badge">水系</span></div>
+        <h2>釣魚台<small>全國水系</small></h2>
+        <div class="art"><img src="all/assets/n129.webp" alt=""><img src="all/assets/n130.webp" alt=""><img src="all/assets/n320.webp" alt=""><img src="all/assets/n7.webp" alt=""></div>
+        <p>甩竿、等浮標動、點一下拉起來。<b>九個世代的水系</b>都在這池。</p>
+        <div class="prog"><span>圖鑑</span><span class="num"><b data-got>0</b><i> / <span data-total-txt>?</span></i></span><span class="bar"><i data-bar></i></span></div>
+        <span class="go">▶ 開始</span>
+      </a>
+      <a class="cab c" href="claw/" data-key="clawPachinko" data-total="1025">
+        <div class="top"><span class="gen">ALL · 夾娃娃</span><span class="badge">全國</span></div>
+        <h2>夾娃娃機<small>全國 1025 隻</small></h2>
+        <div class="art"><img src="all/assets/n25.webp" alt=""><img src="all/assets/n133.webp" alt=""><img src="all/assets/n39.webp" alt=""><img src="all/assets/n143.webp" alt=""></div>
+        <p>操作爪子夾玩偶，<b>夾到就是抓到</b>。有時候會掉，正是樂趣。</p>
+        <div class="prog"><span>圖鑑</span><span class="num"><b data-got>0</b><i> / 1025</i></span><span class="bar"><i data-bar></i></span></div>
+        <span class="go">▶ 開始</span>
+      </a>
+    </div>
+  </section>
+
+  <footer>純 HTML／Canvas，直接在瀏覽器玩，不用安裝。圖鑑存在這個瀏覽器裡。資料與圖片來自 PokeAPI；Pokémon 相關權利屬 Nintendo / Creatures Inc. / GAME FREAK inc.，本專案為非營利粉絲作品。</footer>
 </div>
 
+<div class="modal" id="mDex">
+  <div class="sheet">
+    <div class="sheet-head"><h2>📕 全國圖鑑</h2><span class="right" id="dxRight"></span></div>
+    <div class="tabs" id="dxTabs"></div>
+    <div class="dexgrid" id="dxGrid"></div>
+    <div class="sheet-foot"><span class="note">任何一台抓到的都會點亮；金框＝抓過閃光</span><button class="btn" id="dxClose">關閉</button></div>
+  </div>
+</div>
+
+<script src="all/data.js"></script>
+<script src="shared/collect.js"></script>
 <script>
 // 舊網址相容：以前 ?mode=classic / ?challenge=... / ?reset 都是無印版的
 (() => {
   const q = location.search;
   if (/[?&](mode|challenge|reset)\b/.test(q)) location.replace('kanto/' + q);
 })();
-
 setTimeout(() => document.body.classList.add('settled'), 2600);
 
 // 飄浮精靈球
@@ -184,14 +314,14 @@ setTimeout(() => document.body.classList.add('settled'), 2600);
   }
 })();
 
-// 皮卡丘打招呼：打字機對話，點牠會換一句
+// 皮卡丘打招呼
 (() => {
   const lines = [
-    ['皮卡皮卡！歡迎來到彈珠研究所', '今天要玩哪一台？'],
-    ['皮卡～三台都不一樣喔', '關都是拉霸，城都是輪盤，豐緣有翻板！'],
-    ['皮卡丘 RUSH 等你來！', '三隻皮卡丘＝超級大獎'],
+    ['皮卡皮卡！歡迎來到彈珠研究所', '今天想玩哪一台？'],
+    ['皮卡～每一台抓到的都會進全國圖鑑', '想玩多久就玩多久'],
+    ['推幣機、釣魚、夾娃娃都有喔', '不用動腦，看著就開心'],
     ['皮～卡～', '搖台搖太兇會 TILT，小心一點'],
-    ['皮卡！圖鑑都存在這個瀏覽器', '換裝置不會帶著走喔'],
+    ['皮卡！圖鑑存在這個瀏覽器', '換裝置不會帶著走喔'],
   ];
   const pika = document.getElementById('pika'), bubble = document.getElementById('bubble'), t = document.getElementById('bubbleT'), s = document.getElementById('bubbleS');
   let idx = 0, timer = null;
@@ -212,14 +342,50 @@ setTimeout(() => document.body.classList.add('settled'), 2600);
   });
 })();
 
-// 各台圖鑑進度（存在 localStorage 的 <gen>Pachinko.dex）
-document.querySelectorAll('.cab[data-dex]').forEach(c => {
+// 各台進度
+const WATER = POKEDEX.filter(p => p.types.includes('water')).length;
+document.querySelectorAll('.cab[data-key]').forEach(c => {
   let got = 0;
-  try { const d = JSON.parse(localStorage.getItem(c.dataset.dex) || 'null'); if (d && d.dex) got = Object.values(d.dex).filter(e => e.got).length; } catch (e) {}
-  const total = +c.dataset.total;
+  try { const d = JSON.parse(localStorage.getItem(c.dataset.key + '.dex') || 'null'); if (d && d.dex) got = Object.values(d.dex).filter(e => e.got).length; } catch (e) {}
+  const total = c.dataset.total === 'water' ? WATER : +c.dataset.total;
   c.querySelector('[data-got]').textContent = got;
-  requestAnimationFrame(() => { c.querySelector('[data-bar]').style.width = (100 * got / total).toFixed(1) + '%'; });
+  const tt = c.querySelector('[data-total-txt]'); if (tt) tt.textContent = total;
+  requestAnimationFrame(() => { c.querySelector('[data-bar]').style.width = (100 * Math.min(1, got / total)).toFixed(1) + '%'; });
 });
+document.getElementById('lucky').addEventListener('click', () => {
+  const cabs = [...document.querySelectorAll('.cab[href]')];
+  location.href = cabs[Math.floor(Math.random() * cabs.length)].getAttribute('href');
+});
+
+// 全國圖鑑牆
+const GENS = [[1, 151, '關都'], [152, 251, '城都'], [252, 386, '豐緣'], [387, 493, '神奧'], [494, 649, '合眾'], [650, 721, '卡洛斯'], [722, 809, '阿羅拉'], [810, 905, '伽勒爾'], [906, 1025, '帕底亞']];
+const U = Collect.union();
+const gotIn = (lo, hi) => { let n = 0; for (let i = lo; i <= hi; i++) if (U[i] && U[i].got) n++; return n; };
+document.getElementById('wallGot').textContent = Object.values(U).filter(e => e.got).length;
+const gensEl = document.getElementById('gens');
+GENS.forEach(([lo, hi, nm]) => {
+  const n = gotIn(lo, hi), sp = document.createElement('span'), i = document.createElement('i');
+  sp.appendChild(i); sp.title = `${nm} ${n}/${hi - lo + 1}`; gensEl.appendChild(sp);
+  requestAnimationFrame(() => { i.style.width = (100 * n / (hi - lo + 1)).toFixed(1) + '%'; });
+});
+GENS.forEach(([, , nm]) => { const s = document.createElement('small'); s.textContent = nm; gensEl.appendChild(s); });
+
+const mDex = document.getElementById('mDex'), tabs = document.getElementById('dxTabs'), grid = document.getElementById('dxGrid');
+let gen = 0;
+function renderDex() {
+  const [lo, hi, nm] = GENS[gen];
+  [...tabs.children].forEach((b, i) => b.classList.toggle('on', i === gen));
+  document.getElementById('dxRight').textContent = `${nm} ${gotIn(lo, hi)} / ${hi - lo + 1}`;
+  grid.innerHTML = POKEDEX.filter(p => p.id >= lo && p.id <= hi).map(p => {
+    const e = U[p.id] || {}, sh = e.gotS;
+    return `<div class="dcell ${e.got ? '' : 'miss'} ${sh ? 'sh' : ''}"><span class="n">${Collect.pad3(p.id)}</span><img loading="lazy" src="all/assets/${sh ? 's' : 'n'}${p.id}.webp" alt=""><span class="nm">${e.got ? p.zh : '？？？'}</span></div>`;
+  }).join('');
+  grid.scrollTop = 0;
+}
+GENS.forEach(([lo, hi, nm], i) => { const b = document.createElement('button'); b.textContent = `${nm} ${gotIn(lo, hi)}/${hi - lo + 1}`; b.addEventListener('click', () => { gen = i; renderDex(); }); tabs.appendChild(b); });
+document.getElementById('wall').addEventListener('click', () => { mDex.classList.add('show'); renderDex(); });
+document.getElementById('dxClose').addEventListener('click', () => mDex.classList.remove('show'));
+mDex.addEventListener('click', e => { if (e.target === mDex) mDex.classList.remove('show'); });
 </script>
 </body>
 </html>

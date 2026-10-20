@@ -88,24 +88,41 @@ def main():
     base = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
     root = os.path.join(base, name)
     assets = os.path.join(root, 'assets')
-    os.makedirs(assets, exist_ok=True)
-    if sys.argv[2] == 'dex':
-        dex = get(f'{API}/pokedex/{sys.argv[3]}')
-        entries = [(e['entry_number'], int(e['pokemon_species']['url'].rstrip('/').split('/')[-1])) for e in dex['pokemon_entries']]
-        header = f"{sys.argv[3]} 地區圖鑑 {len(entries)} 隻（no＝地區編號，id＝全國編號）"
+    os.makedirs(root, exist_ok=True)
+    if '--no-images' not in sys.argv:
+        os.makedirs(assets, exist_ok=True)
+    args = [a for a in sys.argv[2:] if not a.startswith('--')]
+    no_images = '--no-images' in sys.argv   # 圖片放在 all/assets，這個資料夾不另存
+    subs = {}
+    if args[0] == 'dex':
+        # 可以給多本圖鑑（例如卡洛斯的中央／海岸／山岳），no 連續編下去，另記 sub（第幾本）與 subNo（該本的編號）
+        entries, seen = [], set()
+        for k, name in enumerate(args[1:]):
+            dex = get(f'{API}/pokedex/{name}')
+            for e in dex['pokemon_entries']:
+                pid = int(e['pokemon_species']['url'].rstrip('/').split('/')[-1])
+                if pid in seen:
+                    continue
+                seen.add(pid)
+                entries.append((len(entries) + 1, pid))
+                if len(args) > 2:
+                    subs[pid] = (k, e['entry_number'])
+        header = f"{'+'.join(args[1:])} 地區圖鑑 {len(entries)} 隻（no＝地區編號，id＝全國編號）"
     else:
-        lo, hi = int(sys.argv[2]), int(sys.argv[3])
+        lo, hi = int(args[0]), int(args[1])
         entries = [(None, pid) for pid in range(lo, hi + 1)]
         header = f'{lo}–{hi}'
     ids = [pid for _, pid in entries]
 
     with ThreadPoolExecutor(8) as ex:
         rows = list(ex.map(species_row, ids))
-        for (no, _), r in zip(entries, rows):
+        for (no, pid), r in zip(entries, rows):
             if no is not None:
                 r['no'] = no
+            if pid in subs:
+                r['sub'], r['subNo'] = subs[pid]
         print(f'{name}: 資料 {len(rows)} 隻', flush=True)
-        jobs = [(pid, sh) for pid in ids for sh in (False, True) if not copy_existing(pid, sh, assets, base)]
+        jobs = [] if no_images else [(pid, sh) for pid in ids for sh in (False, True) if not copy_existing(pid, sh, assets, base)]
         print(f'{name}: 要下載 {len(jobs)} 張', flush=True)
         list(ex.map(lambda j: fetch_art(j[0], j[1], assets), jobs))
     missing = [r['zh'] for r in rows if r['zh'] == r['en']]
@@ -114,7 +131,7 @@ def main():
     with open(os.path.join(root, 'data.js'), 'w', encoding='utf-8') as f:
         f.write(f'// {header} 寶可夢資料（來源：PokeAPI）\n')
         f.write('const POKEDEX = ' + json.dumps(rows, ensure_ascii=False, separators=(',', ':')) + ';\n')
-    print(f'{name}: 完成，圖片 {len(os.listdir(assets))} 張', flush=True)
+    print(f'{name}: 完成' + ('' if no_images else f'，圖片 {len(os.listdir(assets))} 張'), flush=True)
 
 
 if __name__ == '__main__':
