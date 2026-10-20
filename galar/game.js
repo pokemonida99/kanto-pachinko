@@ -16,16 +16,16 @@ const CFG_KEY = 'galarPachinko.cfg';
 const cfg = { music: true, sfx: true, auto: true };
 try { Object.assign(cfg, JSON.parse(localStorage.getItem(CFG_KEY)) || {}); } catch (e) {}
 const saveCfg = () => { try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (e) {} };
-const run = { drops: 0, caught: 0, newdex: 0, dmax: 0, legendRuns: 0, evos: 0 };
+const run = { drops: 0, caught: 0, miss: 0, newdex: 0, dmax: 0, legendRuns: 0, evos: 0, rounds: 1 };
 
 /* ============ 幾何 ============ */
 const W = 440, M = 11, NS = 11, SW = (W - 2 * M) / NS;   // 每格 38
 const BR = 6, DR = 18, PR = 4, KR = 9;                    // 珠／極巨珠／釘／彈板半徑
 let REST = 0.3, KICKV = 24, HDAMP = 0.97, FRIC = 0.6, GRAV = 900, DRAGX = 3, VXMAX = 200, MINDX = 60;
-const MAXV = 950, DROP_Y = 72, MAX_BALLS = 40, DROP_EVERY = 0.3;
-const SLOT_BOOST = [0, 0, 0, 0.5, 1, 2, 1, 0.5, 0, 0, 0];
-const FRAME = ['#2c3a86', '#2c3a86', '#2c3a86', '#c98a4b', '#d6def7', '#ffcc33', '#d6def7', '#c98a4b', '#2c3a86', '#2c3a86', '#2c3a86'];
+const MAXV = 950, DROP_Y = 72, MAX_BALLS = 40, DROP_EVERY = 0.75, AUTO_EVERY = 1.1;
 const CENTER = 5;
+const ROUND = 10;          // 一回 10 顆，丟完才結算
+const MISS_N = 5;          // 每回隨機 5 格落空（中央永遠有獎）
 let H = 800, pegTop = 116, pegBot = 600, slotTop = 650, ROWS = 11, rowH = 50;
 let pegs = [], kickers = [], grid = [], GC = 0, GR = 0;
 const CELL = 32;
@@ -44,6 +44,11 @@ function layout(h) {
       for (let k = 0; k < NS; k++) pegs.push({ x: M + SW * (k + 0.5), y, row: r, f: 0 });
     }
   }
+  // 干擾寶可夢站的位置：左上、右上、中下（擋在中央路線上）
+  const span = pegBot - pegTop;
+  HZ_SPOT = [{ x: W * 0.27, y: pegTop + span * 0.28 }, { x: W * 0.73, y: pegTop + span * 0.28 }, { x: W * 0.5, y: pegTop + span * 0.64 }];
+  pegs = pegs.filter(p => HZ_SPOT.every(z => Math.hypot(p.x - z.x, p.y - z.y) > 28));
+  hz.forEach(z => { const sp = HZ_SPOT[z.spot]; z.x = sp.x; z.y = sp.y; });
   GC = Math.ceil(W / CELL); GR = Math.ceil(H / CELL);
   grid = Array.from({ length: GC * GR }, () => []);
   const pad = PR + DR + 2;
@@ -55,13 +60,94 @@ function layout(h) {
 }
 
 /* ============ 格子 ============ */
-const slots = Array.from({ length: NS }, (_, i) => ({ i, id: 0, flip: 0, lit: 0, litC: '#fff', reroll: -1, dm: 0 }));
-function pickFor(i, extra) {
-  const others = new Set(slots.filter((s, j) => j !== i).map(s => s.id));
-  return C.pick({ boost: SLOT_BOOST[i], filter: p => !others.has(p.id) && (!extra || extra(p)) });
+// 有獎的格子只顯示球種，抓到誰要等 10 顆丟完的結算才揭曉
+const slots = Array.from({ length: NS }, (_, i) => ({ i, miss: false, ball: 'poke', boost: 0, flip: 0, lit: 0, litC: '#fff', dm: 0 }));
+const BALL_ZH = { poke: '精靈球', great: '超級球', ultra: '高級球', master: '傳說' };
+const DIST_BOOST = [2, 1, 0.5, 0, 0, 0];
+function dealSlots() {
+  // 左右各 2～3 格落空，合計 MISS_N 格
+  const left = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5), right = [6, 7, 8, 9, 10].sort(() => Math.random() - 0.5);
+  const nl = Math.random() < 0.5 ? 2 : 3, miss = new Set([...left.slice(0, nl), ...right.slice(0, MISS_N - nl)]);
+  slots.forEach(s => {
+    const d = Math.abs(s.i - CENTER);
+    s.miss = miss.has(s.i); s.ball = d === 0 ? 'ultra' : d <= 2 ? 'great' : 'poke'; s.boost = DIST_BOOST[d]; s.flip = 1;
+  });
 }
-function setSlot(i, id) { const s = slots[i]; s.id = id; s.flip = 1; img(C.img(id)); }
-slots.forEach((s, i) => { s.id = pickFor(i); });
+function pickPrize(i, rareOnly) { return C.pick({ boost: slots[i].boost, filter: rareOnly ? p => p.tier !== 'common' : undefined }); }
+dealSlots();
+
+/* ============ 干擾寶可夢：停幾秒才出一次招，招式會把珠打飛 ============ */
+const HZ_TYPES = {
+  leaf: { id: 1, move: '飛葉快刀', color: '#4ade80', act: 2.6 },      // 妙蛙種子：一圈葉子繞著轉
+  shock: { id: 810, move: '吵鬧', color: '#bef264', act: 1.9 },       // 敲音猴：一波波音波往外擴
+  fire: { id: 813, move: '火花', color: '#fb923c', act: 2.0 },        // 炎兔兒：左右噴火球
+  water: { id: 816, move: '水槍', color: '#38bdf8', act: 2.2 },       // 淚眼蜥：往上噴水把珠頂回去
+};
+const ZR = 15, LEAF_R = 40;
+let HZ_SPOT = [], hz = [], shots = [], hzSerial = 0;
+function dealHazards() {
+  const others = ['shock', 'fire', 'water'].sort(() => Math.random() - 0.5).slice(0, 2);
+  const kinds = ['leaf', ...others].sort(() => Math.random() - 0.5);
+  hz = kinds.map((type, k) => ({ type, ...HZ_TYPES[type], k: 'z' + k, spot: k, x: HZ_SPOT[k].x, y: HZ_SPOT[k].y,
+    state: 'idle', t: rand(1.2, 3.5), ang: Math.random() * 6, waves: [], emit: 0, f: 0, side: 1 }));
+  shots = [];
+  hz.forEach(z => img(C.img(z.id)));
+}
+function updateHazards(dt) {
+  for (const z of hz) {
+    z.f = Math.max(0, z.f - dt * 3);
+    z.t -= dt;
+    if (z.state === 'idle' && z.t <= 0) { z.state = 'wind'; z.t = 0.7; }
+    else if (z.state === 'wind' && z.t <= 0) {
+      z.state = 'act'; z.t = z.act; z.emit = 0;
+      if (!SIM) { addFloat(z.x, z.y - 32, z.move + '！', z.color); sfx.hzGo(z.type); }
+    } else if (z.state === 'act') {
+      z.ang += dt * 4.5; z.emit -= dt;
+      if (z.type === 'shock' && z.emit <= 0) { z.waves.push({ r: ZR }); z.emit = 0.6; }
+      if (z.type === 'fire' && z.emit <= 0) { z.side = -z.side; shots.push({ id: 's' + (++hzSerial), kind: 'fire', x: z.x + z.side * 18, y: z.y, vx: z.side * 230, vy: 0, r: 6, life: 2 }); z.emit = 0.3; }
+      if (z.type === 'water' && z.emit <= 0) { const a = -Math.PI / 2 + rand(-0.85, 0.85); shots.push({ id: 's' + (++hzSerial), kind: 'water', x: z.x, y: z.y - 14, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170, r: 7, life: 1.6 }); z.emit = 0.22; }
+      if (z.t <= 0) { z.state = 'idle'; z.t = rand(2, 4.5); }
+    }
+    for (const w of z.waves) w.r += dt * 170;
+    z.waves = z.waves.filter(w => w.r < 118);
+  }
+  for (const sh of shots) { sh.life -= dt; sh.x += sh.vx * dt; sh.y += sh.vy * dt; if (sh.kind === 'water') sh.vy += 260 * dt; }
+  shots = shots.filter(sh => sh.life > 0 && sh.x > M && sh.x < W - M && sh.y > 0 && sh.y < slotTop);
+}
+function hzFx(b, color) {
+  if (SIM) { SIM.hz++; return; }
+  burst(b.x, b.y, color, 7); sfx.clack();
+}
+function hazardHit(b) {
+  for (const z of hz) {
+    const dx = b.x - z.x, dy = b.y - z.y;
+    if (dx > 130 || dx < -130 || dy > 130 || dy < -130) continue;
+    // 身體本身是一塊擋板
+    if (hitCircle(b, z.x, z.y, ZR, 0.5)) { if (Math.abs(b.vx) < 50) b.vx = (dx >= 0 ? 1 : -1) * rand(70, 120); z.f = 1; }
+    if (z.state !== 'act' || b.age - (b.hz[z.k] || -9) < 0.3) continue;
+    let hit = false;
+    if (z.type === 'leaf') {
+      for (let j = 0; j < 6 && !hit; j++) {
+        const a = z.ang + j * Math.PI / 3, lx = z.x + Math.cos(a) * LEAF_R, ly = z.y + Math.sin(a) * LEAF_R;
+        hit = (b.x - lx) ** 2 + (b.y - ly) ** 2 < (8 + b.r) ** 2;
+      }
+    } else if (z.type === 'shock') {
+      const d = Math.hypot(dx, dy); hit = z.waves.some(w => Math.abs(d - w.r) < 6 + b.r);
+    }
+    if (hit) {
+      const d = Math.hypot(dx, dy) || 1;
+      b.hz[z.k] = b.age; b.vx = dx / d * 260; b.vy = dy / d * 130 - 150;
+      hzFx(b, z.color);
+    }
+  }
+  for (const sh of shots) {
+    if ((b.x - sh.x) ** 2 + (b.y - sh.y) ** 2 > (sh.r + b.r) ** 2 || b.age - (b.hz[sh.id] || -9) < 0.3) continue;
+    b.hz[sh.id] = b.age;
+    if (sh.kind === 'fire') { b.vx = Math.sign(sh.vx) * 220; b.vy = Math.min(b.vy, -80); }
+    else { b.vy = -230; b.vx *= 0.4; sh.life = 0; }
+    hzFx(b, sh.kind === 'fire' ? '#fb923c' : '#38bdf8');
+  }
+}
 
 let legend = null;          // { t, list, k, rot, seen:Set }
 let streak = 0;
@@ -178,6 +264,13 @@ const AU = (() => {
     },
     evo() { notes([[74, 0.07], [78, 0.07], [81, 0.07], [86, 0.07], [90, 0.07], [93, 0.3]], 'triangle', 0.06); },
     flip() { if (ac) osc(sfx, 'square', 1300, ac.currentTime, 0.03, 0.012, 1900); },
+    miss() { if (ac) { osc(sfx, 'triangle', 330, ac.currentTime, 0.22, 0.05, 140); } },
+    hit() { if (ac) { const t = ac.currentTime; osc(sfx, 'square', hz(84), t, 0.06, 0.03); osc(sfx, 'square', hz(91), t + 0.06, 0.1, 0.03); } },
+    hzGo(type) {
+      if (!ac) return; const t = ac.currentTime;
+      noise(sfx, t, 0.35, 0.05, 'bandpass', type === 'fire' ? 1100 : type === 'water' ? 1800 : 3200, 0.05);
+      osc(sfx, 'triangle', type === 'shock' ? 160 : 520, t, 0.25, 0.04, type === 'shock' ? 90 : 900);
+    },
   };
   function crowd(dur, vol) {
     if (!ac) return; const t = ac.currentTime;
@@ -302,6 +395,7 @@ let time = 0, dropCount = 0, aimX = W / 2, carX = W / 2, holding = false, holdT 
 let forceDmax = false, forceShiny = false, SIM = null, lastDmaxBanner = -99;
 let ballSerial = 0;
 const pauses = new Set();
+let round = { n: 1, left: ROUND, hits: [], miss: 0, endT: -1 };
 
 /* ============ 物理 ============ */
 function hitCircle(b, cx, cy, r, e, fr = 1) {
@@ -352,6 +446,8 @@ function stepBall(b, h) {
       }
     }
   }
+  // 干擾寶可夢（極巨珠太大，招式打不動它）
+  if (!b.dmax) hazardHit(b);
   // 兩側彈板：往中間彈回去（極巨珠太大，直接擦過）
   if (!b.dmax && (b.x < M + KR + b.r + 1 || b.x > W - M - KR - b.r - 1)) {
     for (const k of kickers) {
@@ -437,17 +533,18 @@ function physics(dt) {
 /* ============ 放珠 ============ */
 function drop(x) {
   if (balls.length >= MAX_BALLS) return false;
+  if (!SIM) { if (round.left <= 0) return false; round.left--; }
   dropCount++; if (!SIM) run.drops++;
   const dmax = forceDmax || (dropCount % 10 === 0 && !(SIM && SIM.noDmax));
   const shiny = forceShiny || Math.random() < 1 / 100;
   forceDmax = false; forceShiny = false;
   const r = dmax ? DR : BR;
   balls.push({ id: ++ballSerial, x: clamp(x + rand(-1.5, 1.5), M + r + 1, W - M - r - 1), y: DROP_Y, vx: rand(-15, 15), vy: 40,
-    r, dmax, shiny, age: 0, still: 0, nudges: 0, rot: 0, hue: Math.random() * 360 });
+    r, dmax, shiny, age: 0, still: 0, nudges: 0, rot: 0, hue: Math.random() * 360, hz: {} });
   if (SIM) { if (dmax) SIM.dmaxDrops++; return true; }
   if (dmax) {
     run.dmax++; sfx.roar(); addFloat(carX, DROP_Y - 40, '極巨珠！', '#ff4d6d');
-    if (time - lastDmaxBanner > 25) { lastDmaxBanner = time; banner('極巨化！', '這顆落進的格子保證稀有以上', 'rgba(232,23,58,.92)'); }
+    if (time - lastDmaxBanner > 25) { lastDmaxBanner = time; banner('極巨化！', '最後一顆！招式打不動它，中了保證稀有以上', 'rgba(232,23,58,.92)'); }
   } else sfx.drop();
   if (shiny) toast('✨ 閃光珠落下了！');
   refreshUI();
@@ -461,35 +558,35 @@ function land(b) {
   catchAt(i, b);
 }
 function catchAt(i, b) {
-  const s = slots[i];
-  let id = s.id, isLegend = false;
-  if (legend && i === CENTER) { id = legend.list[legend.k]; isLegend = true; }
-  else if (b.dmax) { id = pickFor(i, p => p.tier !== 'common'); setSlot(i, id); s.dm = 1; }
-  const shiny = !!b.shiny;
-  const res = C.add(id, shiny);
-  const evos = C.evolve();
-  run.caught++; if (res.isNew) run.newdex++; run.evos += evos.length;
-  const tier = P[id].tier, rank = C.tierRank(id);
+  const s = slots[i], cx = M + SW * (i + 0.5);
+  const isLegend = !!(legend && i === CENTER);
   // 中央連擊：落中央 +1；中央旁邊兩格不算斷；其他格子就歸零
   if (!legend) streakHit(i);
-  // 演出
-  const cx = M + SW * (i + 0.5);
-  s.lit = 1; s.litC = isLegend ? '#c084fc' : shiny ? '#ff7ad9' : rank >= 2 ? '#ffcc33' : rank === 1 ? '#7cc4ff' : '#ffffff';
-  burst(cx, slotTop + 10, s.litC, 10 + rank * 8);
-  addFloat(cx, slotTop - 8, (shiny ? '✨' : '') + P[id].zh, s.litC);
-  if (rank >= 2 || shiny) { confettiRain(isLegend ? 70 : 34); cameraFlashes(8); }
-  else if (rank === 1) cameraFlashes(3);
-  sfx.land(i, rank);
-  if (isLegend) { /* 聚光燈演出時再放號角 */ }
-  else if (shiny) sfx.shiny();
-  else if (rank >= 2) sfx.srare();
-  else if (rank === 1) sfx.rare();
-  enqueue({ id, shiny, isNew: res.isNew, dmax: !!b.dmax, legend: isLegend, tier, slot: i });
-  evos.forEach(e => enqueue({ evo: e }));
-  if (evos.length) sfx.evo();
-  // 換下一隻
-  if (!isLegend) { if (b.dmax) s.reroll = 0.9; else setSlot(i, pickFor(i)); }
-  refreshUI(); renderRecent();
+  if (s.miss && !isLegend) {
+    run.miss++; round.miss++;
+    s.lit = 1; s.litC = '#5b6290';
+    addFloat(cx, slotTop - 8, '落空', '#9ea8d6'); sfx.miss();
+    refreshUI(); return;
+  }
+  const id = isLegend ? legend.list[legend.k] : pickPrize(i, b.dmax);
+  const shiny = !!b.shiny;
+  const res = C.add(id, shiny), evos = C.evolve();
+  run.caught++; if (res.isNew) run.newdex++; run.evos += evos.length;
+  round.hits.push({ id, shiny, isNew: res.isNew, dmax: !!b.dmax, legend: isLegend, evos });
+  // 只亮格子＋小提示框，是誰等結算再看
+  s.lit = 1; s.litC = isLegend ? '#c084fc' : b.dmax ? '#ff4d6d' : s.ball === 'ultra' ? '#ffcc33' : s.ball === 'great' ? '#7cc4ff' : '#ffffff';
+  if (b.dmax) s.dm = 1;
+  burst(cx, slotTop + 10, s.litC, 14);
+  hitTip(i, isLegend ? '⚡ 傳說格命中！' : b.dmax ? '極巨命中！' : '有中了！', s.litC);
+  sfx.land(i, isLegend ? 3 : s.ball === 'ultra' ? 2 : s.ball === 'great' ? 1 : 0); sfx.hit();
+  if (isLegend) { cameraFlashes(10); arenaFlash = 1; }
+  refreshUI();
+}
+function hitTip(i, text, color) {
+  const el = $('hit'); el.textContent = text; el.style.setProperty('--hc', color);
+  el.style.left = clamp((M + SW * (i + 0.5)) / W * 100, 14, 86) + '%';
+  el.style.top = ((slotTop - 30) / H * 100) + '%';
+  el.classList.remove('go'); void el.offsetWidth; el.classList.add('go');
 }
 
 /* ============ 傳說格 ============ */
@@ -511,89 +608,56 @@ function startLegend() {
 }
 function endLegend() {
   legend = null; AU.bright(false); AU.tempo(136);
-  setSlot(CENTER, pickFor(CENTER));
+  slots[CENTER].flip = 1;
   toast('傳說格關閉了，再連擊 5 次中央就會再開');
 }
 
-/* ============ 揭曉：跑馬字卡（全部）＋揭曉卡（稀有以上）＋聚光燈（閃光／傳說） ============ */
-const Q = [];
-let cur = null;
-const tickerEl = $('ticker'), cardEl = $('card'), spotEl = $('spot');
-function enqueue(it) {
-  ticker(it);
-  if (it.evo) { Q.push({ kind: 'card', ...it }); return; }
-  const first = it.legend && legend && !legend.seen.has(it.id);
-  if (it.legend && legend) legend.seen.add(it.id);
-  if (it.shiny || (it.legend && (first || it.isNew))) { Q.push({ kind: 'spot', ...it }); return; }
-  // 揭曉卡：超稀有、極巨、傳說，或第一次抓到的稀有；其他只走跑馬字卡
-  if (it.legend || it.tier === 'srare' || it.dmax || (it.tier === 'rare' && it.isNew)) {
-    if (Q.length > 4 && !it.isNew && !it.legend) return;   // 太多了就只留在跑馬字卡
-    Q.push({ kind: 'card', ...it });
-  }
+/* ============ 結算：10 顆丟完才揭曉抓到誰（直接顯示，不先黑影） ============ */
+let sumTimer = 0;
+const rankOf = h => (h.legend ? 4 : 0) + (h.shiny ? 3 : 0) + C.tierRank(h.id);
+function showSummary() {
+  round.endT = -2;
+  pause('sum');
+  const hits = round.hits;
+  $('sumT').textContent = `第 ${round.n} 回 結果`;
+  $('sumHit').innerHTML = `中了 <b>${hits.length}</b> / ${ROUND} 顆`;
+  $('sumGrid').innerHTML = hits.length ? hits.map((h, k) => {
+    const cls = h.legend ? 'legend' : P[h.id].tier;
+    const tag = (h.legend ? '傳說' : C.tierName(h.id)) + (h.dmax ? '・極巨' : '');
+    return `<div class="sc ${cls}${h.shiny ? ' shiny' : ''}" style="animation-delay:${k * 0.09}s">
+      ${h.isNew ? '<span class="nw">NEW</span>' : ''}<img src="${C.img(h.id, h.shiny)}" alt="">
+      <div class="no">#${pad3(C.no(h.id))}</div><div class="nm">${h.shiny ? '✨' : ''}${P[h.id].zh}</div><div class="tg">${tag}</div></div>`;
+  }).join('') : '<div class="sumempty">這回合全部落空了…<br>再來 10 顆！</div>';
+  const evos = hits.flatMap(h => h.evos);
+  $('sumEvo').innerHTML = evos.map(e => `<div class="se"><img src="${C.img(e.from)}" alt=""><span class="ar">➜</span><img src="${C.img(e.to)}" alt=""><span>${P[e.from].zh} 進化成 <b>${P[e.to].zh}</b></span>${e.isNew ? '<span class="nw">NEW</span>' : ''}</div>`).join('');
+  $('mSum').classList.add('show');
+  const best = hits.reduce((m, h) => Math.max(m, rankOf(h)), -1);
+  if (best >= 4) sfx.fanfare(); else if (best >= 3) sfx.shiny(); else if (best >= 2) sfx.srare(); else if (best >= 1) sfx.rare();
+  if (evos.length) setTimeout(() => sfx.evo(), 700);
+  renderRecent(); refreshUI();
+  clearInterval(sumTimer);
+  if (cfg.auto) {
+    let n = 10; $('sumNote').textContent = `${n} 秒後自動開始下一回`;
+    sumTimer = setInterval(() => {
+      if ($('mDex').classList.contains('show')) return;
+      n--; $('sumNote').textContent = `${n} 秒後自動開始下一回`;
+      if (n <= 0) nextRound();
+    }, 1000);
+  } else $('sumNote').textContent = '';
 }
-function ticker(it) {
-  const el = document.createElement('div');
-  if (it.evo) {
-    el.className = 'tk evo';
-    el.innerHTML = `<img src="${C.img(it.evo.to)}" alt=""><span class="nm">進化！${P[it.evo.to].zh}</span>${it.evo.isNew ? '<span class="new">NEW</span>' : ''}`;
-  } else {
-    el.className = 'tk ' + (it.shiny ? 'shiny' : it.tier);
-    el.innerHTML = `<img src="${C.img(it.id, it.shiny)}" alt=""><span class="no">#${pad3(C.no(it.id))}</span><span class="nm">${it.shiny ? '✨' : ''}${P[it.id].zh}</span>${it.isNew ? '<span class="new">NEW</span>' : ''}`;
-  }
-  tickerEl.prepend(el);
-  const max = scale * W < 400 ? 3 : 5;
-  while (tickerEl.children.length > max) tickerEl.lastElementChild.remove();
-  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 420); }, 2600);
+function nextRound() {
+  clearInterval(sumTimer); sumTimer = 0;
+  $('mSum').classList.remove('show');
+  round = { n: round.n + 1, left: ROUND, hits: [], miss: 0, endT: -1 };
+  run.rounds = round.n;
+  dealSlots(); dealHazards();
+  holding = false; autoT = 0.8;
+  resume('sum');
+  sfx.whistle();
+  toast(`第 ${round.n} 回：10 顆珠，落空格換位置了`);
+  refreshUI();
 }
-function badges(it) {
-  let s = '';
-  if (it.isNew) s += '<span class="badge">NEW</span>';
-  if (it.shiny) s += '<span class="badge sh">SHINY</span>';
-  if (it.dmax) s += '<span class="badge dm">極巨</span>';
-  return s;
-}
-function showNext() {
-  cur = Q.shift();
-  const more = Q.length ? `<span class="q">+${Q.length}</span>` : '';
-  if (cur.kind === 'card') {
-    if (cur.evo) {
-      const e = cur.evo;
-      cardEl.className = 'card evo';
-      cardEl.innerHTML = `<div class="in">${more}<span class="tier">進化！</span><div class="evorow"><img src="${C.img(e.from)}" alt=""><span class="ar">➜</span><img src="${C.img(e.to)}" alt=""></div>
-        <div class="no">#${pad3(C.no(e.from))} ➜ #${pad3(C.no(e.to))}</div><div class="nm">${P[e.from].zh} ➜ ${P[e.to].zh}</div><div class="badges">${e.isNew ? '<span class="badge">NEW</span>' : ''}</div></div>`;
-    } else {
-      cardEl.className = 'card ' + (cur.legend ? 'srare' : cur.tier);
-      const label = cur.legend ? '傳說' : (cur.dmax ? '極巨・' : '') + C.tierName(cur.id);
-      cardEl.innerHTML = `<div class="in">${more}<span class="tier">${label}</span><img src="${C.img(cur.id, cur.shiny)}" alt="">
-        <div class="no">#${pad3(C.no(cur.id))}</div><div class="nm">${P[cur.id].zh}</div><div class="badges">${badges(cur)}</div></div>`;
-    }
-    void cardEl.offsetWidth; cardEl.classList.add('show');
-    cur.t = clamp(1.7 - Q.length * 0.18, 0.75, 1.7);
-  } else {
-    const lg = cur.legend;
-    spotEl.className = 'spot show' + (cur.shiny ? ' shiny' : '');
-    spotEl.style.setProperty('--hint', lg ? '#c084fc' : '#ffcc33');
-    spotEl.style.setProperty('--ray', lg ? 'rgba(192,132,252,.16)' : 'rgba(255,204,51,.14)');
-    $('spHint').textContent = lg ? (cur.shiny ? '✨ 閃光傳說降臨！' : '⚡ 傳說寶可夢降臨！') : '✨ 閃光寶可夢！';
-    $('spImg').src = C.img(cur.id, cur.shiny);
-    $('spName').textContent = P[cur.id].zh;
-    $('spMeta').innerHTML = `#${pad3(C.no(cur.id))} ${badges(cur)}`;
-    if (lg || cur.shiny) sfx.fanfare();
-    if (lg) arenaFlash = 1;
-    cur.t = Q.length > 4 ? 1.8 : 3.2;
-  }
-}
-function finishCur() {
-  if (!cur) return;
-  if (cur.kind === 'card') { cardEl.classList.remove('show'); cardEl.classList.add('hide'); }
-  else spotEl.className = 'spot';
-  cur = null;
-}
-function updateReveal(dt) {
-  if (cur) { cur.t -= dt; if (cur.t <= 0) finishCur(); }
-  else if (Q.length) showNext();
-}
-spotEl.addEventListener('click', () => { if (cur && cur.kind === 'spot') cur.t = 0; });
+$('sumNext').addEventListener('click', () => { AU.init(); nextRound(); });
 
 /* ============ 特效 ============ */
 let arenaFlash = 0, shakeT = 0;
@@ -624,12 +688,19 @@ function update(dt) {
   // 放珠
   carX += (aimX - carX) * Math.min(1, dt * 16);
   if (holding) { holdT -= dt; if (holdT <= 0) { if (drop(carX)) holdT = DROP_EVERY; else holdT = 0.05; } }
-  else if (cfg.auto) { autoT -= dt; if (autoT <= 0) { drop(carX + rand(-16, 16)); autoT = DROP_EVERY; } }
+  else if (cfg.auto && round.left > 0) {
+    autoT -= dt;
+    if (autoT <= 0.35 && !update.aimed) { aimX = clamp(W / 2 + rand(-160, 160), M + BR, W - M - BR); update.aimed = true; }   // 先移過去再放
+    if (autoT <= 0) { drop(carX); autoT = AUTO_EVERY; update.aimed = false; }
+  }
+  updateHazards(dt);
   physics(dt);
+  // 10 顆都落袋了 → 結算
+  if (round.left <= 0 && round.endT === -1 && !balls.length) round.endT = 1;
+  if (round.endT > 0) { round.endT -= dt; if (round.endT <= 0) showSummary(); }
   // 格子
   for (const s of slots) {
-    s.flip = Math.max(0, s.flip - dt * 4); s.lit = Math.max(0, s.lit - dt * 1.6); s.dm = Math.max(0, s.dm - dt * 0.8);
-    if (s.reroll >= 0) { s.reroll -= dt; if (s.reroll < 0) { setSlot(s.i, pickFor(s.i)); sfx.flip(); } }
+    s.flip = Math.max(0, s.flip - dt * 2.5); s.lit = Math.max(0, s.lit - dt * 1.6); s.dm = Math.max(0, s.dm - dt * 0.8);
   }
   if (legend) {
     legend.t -= dt; legend.rot += dt;
@@ -655,7 +726,6 @@ function update(dt) {
   for (const c of confetti) { c.t += dt; c.x += (c.vx + Math.sin(c.t * 4 + c.r) * 30) * dt; c.y += c.vy * dt; c.r += c.vr * dt; }
   confetti = confetti.filter(c => c.y < H + 10);
   arenaFlash = Math.max(0, arenaFlash - dt * 0.6);
-  updateReveal(dt);
 }
 
 /* ============ 繪圖 ============ */
@@ -679,34 +749,99 @@ function drawBall(b) {
   ctx.restore();
   ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.beginPath(); ctx.arc(b.x - r * 0.35, b.y - r * 0.4, r * 0.25, 0, Math.PI * 2); ctx.fill();
 }
+function drawBallIcon(x, y, r, kind) {
+  const top = { poke: '#e8173a', great: '#1e6bff', ultra: '#22232e', master: '#7c3aed' }[kind];
+  ctx.beginPath(); ctx.arc(x, y, r, Math.PI, 0); ctx.fillStyle = top; ctx.fill();
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI); ctx.fillStyle = '#f6f7ff'; ctx.fill();
+  if (kind === 'great') { ctx.fillStyle = '#e8173a'; ctx.fillRect(x - r * 0.78, y - r * 0.62, r * 0.42, r * 0.3); ctx.fillRect(x + r * 0.36, y - r * 0.62, r * 0.42, r * 0.3); }
+  if (kind === 'ultra') { ctx.fillStyle = '#ffcc33'; ctx.fillRect(x - r * 0.62, y - r * 0.82, r * 0.24, r * 0.68); ctx.fillRect(x + r * 0.38, y - r * 0.82, r * 0.24, r * 0.68); ctx.fillRect(x - r * 0.62, y - r * 0.56, r * 1.24, r * 0.2); }
+  if (kind === 'master') {
+    ctx.fillStyle = '#ff7ad9'; ctx.beginPath(); ctx.arc(x - r * 0.55, y - r * 0.5, r * 0.22, 0, Math.PI * 2); ctx.arc(x + r * 0.55, y - r * 0.5, r * 0.22, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = `600 ${r * 0.9}px ${NUMF}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('M', x, y - r * 0.48);
+  }
+  ctx.fillStyle = '#10132b'; ctx.fillRect(x - r, y - r * 0.12, r * 2, r * 0.24);
+  ctx.beginPath(); ctx.arc(x, y, r * 0.36, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, r * 0.2, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+}
+function vText(text, x, y, avail, color) {
+  const fs = Math.min(12.5, avail / text.length);
+  ctx.fillStyle = color; ctx.font = `700 ${fs}px ${ZHF}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let c = 0; c < text.length; c++) ctx.fillText(text[c], x, y + c * fs * 1.04);
+}
 function drawSlot(s) {
-  const i = s.i, x0 = M + i * SW, y0 = slotTop, w = SW, h = H - slotTop;
+  const i = s.i, x0 = M + i * SW, y0 = slotTop, w = SW, h = H - slotTop, cx = x0 + w / 2;
   const isLeg = legend && i === CENTER;
-  const id = isLeg ? legend.list[legend.k] : s.id;
-  const fc = isLeg ? `hsl(${(time * 200) % 360},90%,70%)` : s.dm > 0 ? '#ff2a4f' : FRAME[i];
-  if (isLeg) {
-    const g = ctx.createLinearGradient(0, y0, 0, H); g.addColorStop(0, '#5b21b6'); g.addColorStop(1, '#1e0b44');
-    ctx.fillStyle = g; ctx.fillRect(x0 + 1, y0, w - 2, h);
-  } else if (i === CENTER) {
-    const g = ctx.createLinearGradient(0, y0, 0, H); g.addColorStop(0, 'rgba(255,204,51,.28)'); g.addColorStop(1, 'rgba(255,204,51,.04)');
-    ctx.fillStyle = g; ctx.fillRect(x0 + 1, y0, w - 2, h);
+  const sx = Math.max(0.05, Math.abs(Math.cos(s.flip * Math.PI)));   // 換位置時翻牌
+  ctx.save(); ctx.translate(cx, 0); ctx.scale(sx, 1); ctx.translate(-cx, 0);
+  if (s.miss && !isLeg) {
+    ctx.fillStyle = 'rgba(38,6,16,.8)'; ctx.fillRect(x0 + 1, y0, w - 2, h);
+    ctx.save(); ctx.beginPath(); ctx.rect(x0 + 1, y0, w - 2, h); ctx.clip();
+    ctx.strokeStyle = 'rgba(255,77,109,.1)'; ctx.lineWidth = 4;
+    for (let k = -h; k < w + h; k += 12) { ctx.beginPath(); ctx.moveTo(x0 + k, y0); ctx.lineTo(x0 + k - h, y0 + h); ctx.stroke(); }
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(255,77,109,.45)'; ctx.lineWidth = 1.2; ctx.strokeRect(x0 + 2, y0 + 2, w - 4, h - 4);
+    ctx.strokeStyle = '#ff4d6d'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx - 8, y0 + 22); ctx.lineTo(cx + 8, y0 + 38); ctx.moveTo(cx + 8, y0 + 22); ctx.lineTo(cx - 8, y0 + 38); ctx.stroke(); ctx.lineCap = 'butt';
+    vText('落空', cx, y0 + 54, 30, '#ff8fa3');
+  } else {
+    const kind = isLeg ? 'master' : s.ball;
+    const fc = isLeg ? `hsl(${(time * 200) % 360},90%,70%)` : s.dm > 0 ? '#ff2a4f' : kind === 'ultra' ? '#ffcc33' : kind === 'great' ? '#7cc4ff' : '#c9d2f5';
+    if (isLeg || kind === 'ultra') {
+      const g = ctx.createLinearGradient(0, y0, 0, H);
+      if (isLeg) { g.addColorStop(0, '#5b21b6'); g.addColorStop(1, '#1e0b44'); } else { g.addColorStop(0, 'rgba(255,204,51,.28)'); g.addColorStop(1, 'rgba(255,204,51,.04)'); }
+      ctx.fillStyle = g; ctx.fillRect(x0 + 1, y0, w - 2, h);
+    }
+    ctx.strokeStyle = fc; ctx.lineWidth = kind === 'poke' ? 1.2 : 2.2; ctx.strokeRect(x0 + 2, y0 + 2, w - 4, h - 4);
+    drawBallIcon(cx, y0 + 30 + Math.sin(time * 3 + i) * 1.5, 11, kind);
+    vText(BALL_ZH[kind], cx, y0 + 52, h - 62, isLeg ? '#fff' : '#e8ecff');
   }
-  ctx.strokeStyle = fc; ctx.lineWidth = i === CENTER || s.dm > 0 ? 2.4 : 1.2;
-  ctx.strokeRect(x0 + 2, y0 + 2, w - 4, h - 4);
-  // 編號
-  ctx.fillStyle = FRAME[i] === '#2c3a86' && !isLeg && !(s.dm > 0) ? '#9fb0f0' : fc; ctx.font = `600 15px ${NUMF}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-  ctx.fillText('#' + pad3(C.no(id)), x0 + w / 2, y0 + 6);
-  // 圖（換人時翻牌）
-  const m = img(C.img(id)), sx = Math.abs(Math.cos(s.flip * Math.PI / 2 * 2)) || 0.02;
-  if (ready(m)) {
-    ctx.save(); ctx.translate(x0 + w / 2, y0 + 39); ctx.scale(Math.max(0.05, sx), 1);
-    ctx.drawImage(m, -18, -18, 36, 36); ctx.restore();
-  }
-  // 直書名字
-  const name = P[id].zh, avail = h - 66, fs = Math.min(12.5, avail / name.length);
-  ctx.fillStyle = isLeg ? '#fff' : '#e8ecff'; ctx.font = `700 ${fs}px ${ZHF}`;
-  for (let c = 0; c < name.length; c++) ctx.fillText(name[c], x0 + w / 2, y0 + 60 + c * fs * 1.02);
+  ctx.restore();
   if (s.lit > 0) { ctx.fillStyle = s.litC; ctx.globalAlpha = s.lit * 0.55; ctx.fillRect(x0 + 1, y0, w - 2, h); ctx.globalAlpha = 1; }
+}
+function drawHazards() {
+  for (const z of hz) {
+    if (z.state === 'act' && z.type === 'leaf') {
+      ctx.strokeStyle = 'rgba(74,222,128,.18)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(z.x, z.y, LEAF_R, 0, Math.PI * 2); ctx.stroke();
+      for (let j = 0; j < 6; j++) {
+        const a = z.ang + j * Math.PI / 3;
+        ctx.save(); ctx.translate(z.x + Math.cos(a) * LEAF_R, z.y + Math.sin(a) * LEAF_R); ctx.rotate(a + time * 9);
+        ctx.fillStyle = '#4ade80'; ctx.strokeStyle = '#14532d'; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.ellipse(0, 0, 8, 3.6, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-7, 0); ctx.lineTo(7, 0); ctx.stroke();
+        ctx.restore();
+      }
+    }
+    for (const wv of z.waves) {
+      ctx.strokeStyle = `rgba(190,242,100,${(1 - wv.r / 118) * 0.85})`; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(z.x, z.y, wv.r, 0, Math.PI * 2); ctx.stroke();
+    }
+    // 底座：蓄力時發光，出招時抖
+    const glow = z.state === 'wind' ? 0.5 + Math.sin(time * 30) * 0.5 : z.state === 'act' ? 0.6 : 0;
+    if (glow > 0) {
+      const g = ctx.createRadialGradient(z.x, z.y, 4, z.x, z.y, 34);
+      g.addColorStop(0, z.color); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalAlpha = glow * 0.55; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(z.x, z.y, 34, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = 'rgba(6,10,34,.82)'; ctx.beginPath(); ctx.arc(z.x, z.y + 6, ZR + 2, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = z.color; ctx.lineWidth = 2 + z.f * 2; ctx.stroke();
+    const m = img(C.img(z.id)), jx = z.state === 'act' ? rand(-1, 1) : 0;
+    if (ready(m)) ctx.drawImage(m, z.x - 22 + jx, z.y - 28 + Math.sin(time * 2.4 + z.spot) * 1.5, 44, 44);
+    if (z.state === 'wind') {
+      ctx.fillStyle = z.color; ctx.font = `900 16px ${ZHF}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.strokeText('！', z.x + 18, z.y - 26); ctx.fillText('！', z.x + 18, z.y - 26);
+    }
+  }
+  for (const sh of shots) {
+    if (sh.kind === 'fire') {
+      const g = ctx.createRadialGradient(sh.x, sh.y, 1, sh.x, sh.y, sh.r * 2.2);
+      g.addColorStop(0, '#fff7c2'); g.addColorStop(0.35, '#fb923c'); g.addColorStop(1, 'rgba(251,146,60,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sh.x, sh.y, sh.r * 2.2, 0, Math.PI * 2); ctx.fill();
+    } else {
+      ctx.fillStyle = 'rgba(56,189,248,.75)'; ctx.beginPath(); ctx.arc(sh.x, sh.y, sh.r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.beginPath(); ctx.arc(sh.x - 2, sh.y - 2.5, sh.r * 0.3, 0, Math.PI * 2); ctx.fill();
+    }
+  }
 }
 function render() {
   ctx.setTransform(K, 0, 0, K, 0, 0);
@@ -744,7 +879,7 @@ function render() {
   ctx.fillStyle = '#05061a'; ctx.fillRect(0, ly - 8, W, 15);
   ctx.save(); ctx.beginPath(); ctx.rect(0, ly - 8, W, 15); ctx.clip();
   ctx.font = `600 15px ${NUMF}`; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-  const msg = legend ? `★ LEGEND ZONE ★ 傳說格 ${legend.t.toFixed(1)}s ★ 瞄準中央 ★ ` : `GALAR LEAGUE ★ 中央連擊 ${streak}/5 ★ 下一顆極巨珠還有 ${10 - dropCount % 10} 顆 ★ 圖鑑 ${C.count()}/${DEX_TOTAL} ★ `;
+  const msg = legend ? `★ LEGEND ZONE ★ 傳說格 ${legend.t.toFixed(1)}s ★ 瞄準中央 ★ ` : `GALAR LEAGUE ★ 第 ${round.n} 回 ★ 剩 ${round.left} 顆 ★ 第 10 顆是極巨珠 ★ 小心中間的寶可夢出招 ★ 中央連擊 ${streak}/5 ★ `;
   ctx.fillStyle = legend ? '#e9d5ff' : '#ffcc33';
   const mw = ctx.measureText(msg).width, off = (time * 40) % mw;
   for (let x = -off; x < W; x += mw) ctx.fillText(msg, x, ly + 1);
@@ -766,6 +901,8 @@ function render() {
     ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.2; ctx.stroke();
     if (k.f > 0) { ctx.fillStyle = `rgba(255,255,255,${k.f * 0.6})`; ctx.beginPath(); ctx.arc(k.x, k.y, KR * 1.8, 0, Math.PI * 2); ctx.fill(); }
   }
+  // 干擾寶可夢
+  drawHazards();
   // 格子
   for (const s of slots) drawSlot(s);
   ctx.fillStyle = '#d6def7';
@@ -792,6 +929,17 @@ function render() {
   ctx.fillStyle = nextD ? '#ff2a4f' : '#ffcc33'; ctx.font = `600 13px ${NUMF}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(nextD ? 'MAX' : '▼', 0, 3);
   ctx.restore();
+  // 這回剩下的珠（屋頂中央）
+  ctx.fillStyle = 'rgba(0,0,0,.55)'; rrect(W / 2 - 92, 3, 184, 17, 8); ctx.fill();
+  ctx.fillStyle = '#ffcc33'; ctx.font = `600 15px ${NUMF}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText(`R${round.n}`, W / 2 - 86, 12.5);
+  for (let k = 0; k < ROUND; k++) {
+    const px = W / 2 - 52 + k * 14.5, on = k < round.left, last = k === ROUND - 1;
+    ctx.fillStyle = on ? (last ? '#ff2a4f' : '#e8173a') : 'rgba(255,255,255,.14)';
+    ctx.beginPath(); ctx.arc(px, 11.5, last ? 5.5 : 4.6, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = on ? '#f6f7ff' : 'rgba(255,255,255,.08)';
+    ctx.beginPath(); ctx.arc(px, 11.5, last ? 5.5 : 4.6, 0, Math.PI); ctx.fill();
+  }
   // 珠
   for (const p of parts) if (p.cloud) {
     const a = 1 - p.t / p.life;
@@ -825,6 +973,7 @@ function render() {
   }
 }
 
+function rrect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
@@ -843,6 +992,7 @@ function refreshUI() {
   setK('dex', dc); setK('shiny', sc); setK('legend', lc);
   setBar('dex', dc / DEX_TOTAL); setBar('shiny', Math.min(1, sc / 40)); setBar('legend', lc / LEGEND_TOTAL);
   for (const k in run) setK(k, run[k]);
+  setK('left', round.left);
 }
 function renderRecent() {
   const r = C.recent();
@@ -870,7 +1020,7 @@ const ACT = {
   dex: openDex,
   pause: () => (pauses.has('user') ? resume('user') : pause('user')),
   home: () => { location.href = '../'; },
-  auto: () => { cfg.auto = !cfg.auto; saveCfg(); syncSwitches(); toast(cfg.auto ? '自動落珠：開' : '自動落珠：關（拖曳或按住板子放珠）'); },
+  auto: () => { cfg.auto = !cfg.auto; saveCfg(); syncSwitches(); toast(cfg.auto ? '自動落珠：開（結算後也會自動下一回）' : '自動落珠：關（拖曳選位置，按住放珠）'); },
   music: () => { cfg.music = !cfg.music; AU.setMusic(cfg.music); saveCfg(); syncSwitches(); },
   sfx: () => { cfg.sfx = !cfg.sfx; AU.setSfx(cfg.sfx); saveCfg(); syncSwitches(); },
 };
@@ -898,6 +1048,7 @@ document.addEventListener('keydown', e => {
     else if (e.key === 'ArrowLeft') { dexPage--; renderDex(); } else if (e.key === 'ArrowRight') { dexPage++; renderDex(); }
     return;
   }
+  if ($('mSum').classList.contains('show')) { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); AU.init(); nextRound(); } return; }
   AU.init();
   if (e.key === ' ') { e.preventDefault(); if (!pauses.size && !holding) { holding = true; holdT = 0; } }
   else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { keys.add(e.key); e.preventDefault(); }
@@ -977,7 +1128,7 @@ if (window.ResizeObserver) new ResizeObserver(() => fit()).observe(wrapEl);
 window.__sim = (sec = 120, { spread = 1, hold = false, noDmax = false, noBB = false, every = 0 } = {}) => {
   const saved = { balls, dropCount, time, streak };
   balls = []; dropCount = 0;
-  SIM = { landed: 0, bySlot: Array(NS).fill(0), nudges: 0, stuck: 0, nan: 0, maxAge: 0, kicks: 0, knocks: 0, dmaxDrops: 0, dmaxLanded: 0, maxBalls: 0, drops: 0, stuckD: 0, stuckAt: [], legends: 0, noDmax, noBB };
+  SIM = { landed: 0, bySlot: Array(NS).fill(0), nudges: 0, stuck: 0, nan: 0, maxAge: 0, kicks: 0, knocks: 0, dmaxDrops: 0, dmaxLanded: 0, maxBalls: 0, drops: 0, stuckD: 0, stuckAt: [], legends: 0, hz: 0, prize: 0, noDmax, noBB };
   const dt = 1 / 60;
   let t = 0, at = 0, sweep = 0;
   try {
@@ -989,10 +1140,13 @@ window.__sim = (sec = 120, { spread = 1, hold = false, noDmax = false, noBB = fa
         if (drop(x)) SIM.drops++;
         at = every || (hold ? 0.05 : DROP_EVERY);
       }
+      updateHazards(dt);
       physics(dt);
       SIM.maxBalls = Math.max(SIM.maxBalls, balls.length);
     }
     SIM.onBoard = balls.length;
+    SIM.prize = SIM.bySlot.reduce((a, n, i) => a + (slots[i].miss ? 0 : n), 0);
+    SIM.prizeRate = +(SIM.prize / Math.max(1, SIM.landed)).toFixed(3);
     return SIM;
   } finally {
     const out = SIM; SIM = null; balls = saved.balls; dropCount = saved.dropCount; time = saved.time; streak = saved.streak;
@@ -1005,11 +1159,12 @@ window.__dmax = () => { forceDmax = true; };
 window.__shiny = () => { forceShiny = true; };
 window.__legend = () => startLegend();
 window.__catch = (n = 20, slot) => { for (let k = 0; k < n; k++) catchAt(slot != null ? slot : Math.floor(Math.random() * NS), { dmax: false, shiny: false }); };
-window.__state = () => ({ balls: balls.length, dex: C.count(), run: { ...run }, legend: legend && { t: legend.t, list: legend.list }, streak, slots: slots.map(s => s.id) });
+window.__state = () => ({ balls: balls.length, dex: C.count(), run: { ...run }, legend: legend && { t: legend.t, list: legend.list }, streak, slots: slots.map(s => s.miss ? 'x' : s.ball), round: { n: round.n, left: round.left, hits: round.hits.length, miss: round.miss, endT: round.endT }, hz: hz.map(z => z.type + ':' + z.state) });
+window.__next = () => nextRound();
 
 /* ============ 開始 ============ */
 syncSwitches();
-fit(); refreshUI(); renderRecent();
+fit(); dealHazards(); refreshUI(); renderRecent();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => buildBG());
 requestAnimationFrame(t => { last = t; frame(t); });
-setTimeout(() => toast('拖曳板子選位置・按住一直放珠'), 600);
+setTimeout(() => toast('一回 10 顆・避開落空格和寶可夢的招式'), 600);

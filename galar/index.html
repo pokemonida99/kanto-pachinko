@@ -46,59 +46,14 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;borde
 canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab;-webkit-touch-callout:none}
 canvas:active{cursor:grabbing}
 
-/* 抓到的跑馬字卡（不中斷） */
-.ticker{position:absolute;left:8px;top:23%;display:flex;flex-direction:column;gap:4px;pointer-events:none;width:min(46%,190px)}
-.tk{display:flex;align-items:center;gap:6px;height:34px;padding:0 10px 0 4px;background:linear-gradient(90deg,rgba(7,10,34,.92),rgba(14,20,64,.78));border-left:3px solid var(--blue2);border-radius:4px;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;animation:tkIn .28s cubic-bezier(.2,1.3,.4,1);transition:opacity .4s,transform .4s}
-.tk.out{opacity:0;transform:translateX(-30px)}
-.tk img{width:32px;height:32px;object-fit:contain;flex:none}
-.tk .no{font:500 15px/1 var(--num);color:var(--mut);padding-top:2px}
-.tk .nm{overflow:hidden;text-overflow:ellipsis}
-.tk .new{font:600 13px/1 var(--num);background:var(--gold);color:#2a1800;padding:2px 4px 0;border-radius:3px;letter-spacing:1px}
-.tk.rare{border-left-color:#60a5fa}.tk.srare{border-left-color:var(--gold)}.tk.shiny{border-left-color:#ff7ad9}
-.tk.evo{border-left-color:#6ee7b7}
-@keyframes tkIn{from{opacity:0;transform:translateX(-40px)}}
-
-/* 揭曉卡（稀有以上，排隊） */
-.card{position:absolute;left:50%;top:50%;width:min(78%,300px);transform:translate(-50%,-50%);pointer-events:none;opacity:0;display:none}
-.card.show{display:block;animation:cardIn .42s cubic-bezier(.2,1.4,.4,1) forwards}
-.card.hide{display:block;animation:cardOut .3s ease-in forwards}
-@keyframes cardIn{from{opacity:0;transform:translate(-50%,-50%) scale(.6) rotate(-6deg)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
-@keyframes cardOut{to{opacity:0;transform:translate(-50%,-80%) scale(.9)}}
-.card .in{position:relative;padding:12px 14px 14px;border-radius:12px;background:linear-gradient(160deg,#15206a,#090d2e 70%);border:2px solid #60a5fa;box-shadow:0 0 30px rgba(96,165,250,.45),0 16px 40px rgba(0,0,0,.6);overflow:hidden;text-align:center}
-.card .in::before{content:"";position:absolute;inset:-40% -60%;background:linear-gradient(100deg,transparent 40%,rgba(255,255,255,.28) 50%,transparent 60%);animation:sweep 1.4s .2s ease-out infinite}
-@keyframes sweep{from{transform:translateX(-60%)}to{transform:translateX(60%)}}
-.card .tier{display:inline-block;font:13px/1 var(--head);letter-spacing:2px;padding:4px 10px 3px;border-radius:3px;background:#2b5cd6;transform:skewX(-12deg)}
-.card img{display:block;width:62%;aspect-ratio:1;object-fit:contain;margin:4px auto 0;filter:drop-shadow(0 8px 14px rgba(0,0,0,.6));animation:pop .5s cubic-bezier(.2,1.7,.4,1)}
-@keyframes pop{from{transform:scale(.3)}}
-.card .nm{font-size:22px;font-weight:900;letter-spacing:1px}
-.card .no{font:500 20px/1 var(--num);color:var(--mut);letter-spacing:1px}
-.card .badges{display:flex;gap:4px;justify-content:center;margin-top:4px;min-height:18px}
+/* 命中小提示框（不說是誰，結算才揭曉） */
+.hit{position:absolute;left:50%;top:70%;transform:translate(-50%,-50%);padding:5px 12px;border-radius:6px;background:rgba(7,10,34,.92);border:1.5px solid var(--hc,#fff);color:var(--hc,#fff);font-size:14px;font-weight:900;letter-spacing:1px;white-space:nowrap;pointer-events:none;opacity:0;z-index:4;box-shadow:0 0 14px color-mix(in srgb,var(--hc,#fff) 40%,transparent)}
+.hit.go{animation:hitpop 1.15s ease-out}
+@keyframes hitpop{0%{opacity:0;transform:translate(-50%,-20%) scale(.7)}14%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}24%{transform:translate(-50%,-50%) scale(1)}72%{opacity:1}100%{opacity:0;transform:translate(-50%,-120%)}}
 .badge{font:600 13px/1 var(--num);padding:3px 6px 1px;border-radius:3px;background:var(--gold);color:#2a1800;letter-spacing:1px}
 .badge.sh{background:linear-gradient(90deg,#ff5f9e,#ffb340,#6ee7b7,#60a5fa)}
 .badge.dm{background:var(--red);color:#fff}
-.card.srare .in{border-color:var(--gold);box-shadow:0 0 34px rgba(255,204,51,.5),0 16px 40px rgba(0,0,0,.6)}
-.card.srare .tier{background:var(--gold);color:#2a1800}
-.card.shiny .in{border-color:#ff7ad9;background:linear-gradient(160deg,#3a1460,#0b0d2e 70%)}
-.card.evo .in{border-color:#6ee7b7}
-.card.evo .tier{background:#10b981}
-.card .evorow{display:flex;align-items:center;justify-content:center;gap:4px}
-.card .evorow img{width:38%;margin:4px 0 0}
-.card .evorow .ar{font-size:26px;color:#6ee7b7}
-.card .q{position:absolute;right:8px;top:8px;font:500 16px/1 var(--num);color:var(--mut)}
-
-/* 閃光／傳說聚光燈（不暫停，只蓋在板子上） */
-.spot{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:radial-gradient(circle at 50% 45%,rgba(60,20,90,.9),rgba(4,6,20,.94) 70%);overflow:hidden;cursor:pointer;z-index:5}
-.spot.show{display:flex;animation:fadeIn .3s}
-@keyframes fadeIn{from{opacity:0}}
-.spot .rays{position:absolute;left:50%;top:45%;width:200%;aspect-ratio:1;transform:translate(-50%,-50%);background:repeating-conic-gradient(var(--ray,rgba(255,255,255,.08)) 0 8deg,transparent 8deg 20deg);border-radius:50%;animation:spin 12s linear infinite;-webkit-mask:radial-gradient(circle,#000 10%,transparent 60%);mask:radial-gradient(circle,#000 10%,transparent 60%)}
-@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
-.spot .hint{position:relative;font:clamp(18px,5vw,26px)/1.1 var(--head);letter-spacing:3px;color:var(--hint,#fff);text-shadow:0 0 18px currentColor}
-.spot img{position:relative;width:min(64%,300px);aspect-ratio:1;object-fit:contain;filter:drop-shadow(0 10px 22px rgba(0,0,0,.6));animation:pop .6s cubic-bezier(.2,1.6,.4,1)}
-.spot .name{position:relative;font-size:clamp(28px,8vw,42px);font-weight:900;letter-spacing:2px}
-.spot .meta{position:relative;display:flex;gap:6px;align-items:center;font:500 20px/1 var(--num);color:var(--mut)}
-.spot.shiny .name{background:linear-gradient(90deg,#ff5f9e,#ffb340,#6ee7b7,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
-.spot .tap{position:absolute;bottom:14px;font-size:12px;color:var(--mut)}
-
+@keyframes pop{from{transform:scale(.3)}}
 .toast{position:absolute;left:50%;top:15%;transform:translate(-50%,-8px);background:rgba(7,10,34,.88);border:1px solid var(--line);font-size:13px;font-weight:700;padding:6px 14px;border-radius:4px;white-space:nowrap;opacity:0;transition:.25s;pointer-events:none;max-width:92%;overflow:hidden;text-overflow:ellipsis;z-index:6}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .banner{position:absolute;left:0;right:0;top:19%;text-align:center;pointer-events:none;opacity:0;z-index:4}
@@ -190,8 +145,36 @@ canvas:active{cursor:grabbing}
 .btn{padding:9px 18px;border-radius:6px;font-weight:900}
 .btn.primary{background:var(--red)}
 .empty{color:var(--mut);font-size:13px;text-align:center;padding:30px 0}
-@media (max-width:520px){.sheet-foot .note{display:none}.tabs{margin-left:0}.card{width:min(66%,260px)}.card .nm{font-size:19px}}
-@media (prefers-reduced-motion:reduce){.spot .rays,.card .in::before{animation:none}}
+/* 結算 */
+.sheet.sum{width:min(680px,100%);height:auto;max-height:100%}
+.sheet.sum .sheet-head{padding-bottom:10px}
+.sumhit{margin-left:auto;font-size:14px;color:var(--mut);font-weight:700}
+.sumhit b{font:600 30px/1 var(--num);color:var(--gold);padding:0 2px}
+.sumbody{overflow:auto;padding:4px 14px 6px}
+.sumgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:8px}
+.sc{position:relative;display:flex;flex-direction:column;align-items:center;padding:8px 6px 8px;border-radius:8px;background:linear-gradient(160deg,#18226a,#0a0e30 75%);border:1.5px solid rgba(255,255,255,.18);text-align:center;opacity:0;animation:scIn .45s cubic-bezier(.2,1.4,.4,1) forwards}
+@keyframes scIn{from{opacity:0;transform:translateY(14px) scale(.85)}to{opacity:1;transform:none}}
+.sc img{width:84%;aspect-ratio:1;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.55))}
+.sc .no{font:500 16px/1 var(--num);color:var(--mut);margin-top:2px}
+.sc .nm{font-size:14px;font-weight:900;line-height:1.3}
+.sc .tg{font-size:11px;font-weight:700;color:var(--mut);margin-top:2px}
+.sc .nw{position:absolute;left:6px;top:6px;font:600 13px/1 var(--num);background:var(--gold);color:#2a1800;padding:2px 5px 0;border-radius:3px;letter-spacing:1px}
+.sc.rare{border-color:#60a5fa}.sc.rare .tg{color:#93c5fd}
+.sc.srare{border-color:var(--gold);box-shadow:0 0 16px rgba(255,204,51,.35)}.sc.srare .tg{color:var(--gold)}
+.sc.legend{border-color:#c084fc;background:linear-gradient(160deg,#4c1d95,#120a35 75%);box-shadow:0 0 20px rgba(192,132,252,.45)}.sc.legend .tg{color:#e9d5ff}
+.sc.shiny{background:linear-gradient(160deg,#4a1a6e,#0b0d2e 75%);border-color:#ff7ad9}
+.sc.shiny .nm{background:linear-gradient(90deg,#ff5f9e,#ffb340,#6ee7b7,#60a5fa);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sumempty{grid-column:1/-1;text-align:center;color:var(--mut);font-size:16px;font-weight:700;line-height:1.8;padding:26px 0}
+.sumevo{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.se{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;background:rgba(16,185,129,.12);border:1px solid rgba(110,231,183,.45);font-size:13px;font-weight:700}
+.se img{width:40px;height:40px;object-fit:contain}
+.se .ar{color:#6ee7b7;font-size:18px}
+.se b{color:#6ee7b7}
+.se .nw{margin-left:auto;font:600 13px/1 var(--num);background:var(--gold);color:#2a1800;padding:2px 5px 0;border-radius:3px}
+.btn.next{background:linear-gradient(90deg,var(--red),var(--blue));font-size:16px;padding:11px 22px}
+.btn.ghost{background:rgba(255,255,255,.08)}
+@media (max-width:520px){.sheet-foot .note{display:none}.tabs{margin-left:0}.sumgrid{grid-template-columns:repeat(3,1fr);gap:6px}.sc .nm{font-size:13px}.sheet.sum .sheet-foot .note{display:block;flex:1;font-size:11px}}
+@media (prefers-reduced-motion:reduce){.sc{animation:none;opacity:1}}
 </style>
 </head>
 <body>
@@ -215,12 +198,13 @@ canvas:active{cursor:grabbing}
     <div class="panel">
       <h3>玩法</h3>
       <ul class="rules">
-        <li>在板子上<b>左右拖曳</b>選位置，按住會一直放珠。</li>
-        <li>珠落進哪一格，就<b>抓到</b>格子上的寶可夢。</li>
-        <li><b>中央金框</b>最稀有，越往兩邊越普通。</li>
-        <li>每 10 顆一顆<b>極巨珠</b>：保證稀有以上。</li>
+        <li>一回 <b>10 顆珠</b>，左右拖曳選位置、按住放珠。</li>
+        <li>每回有 <b>5 格落空</b>（紅色 ✕），位置每回都換。</li>
+        <li>中間有 <b>3 隻寶可夢</b>會停一下再出招，把珠打飛。</li>
+        <li>中了只會跳「有中了！」，<b>10 顆丟完才揭曉</b>抓到誰。</li>
+        <li>高級球格（中央）最稀有，越往兩邊越普通。</li>
+        <li>第 10 顆是<b>極巨珠</b>：招式打不動，中了保證稀有以上。</li>
         <li>中央連擊 5 次：<b>傳說格</b>開 10 秒。</li>
-        <li>同一種抓 3 隻會自動進化。</li>
       </ul>
     </div>
   </aside>
@@ -236,10 +220,8 @@ canvas:active{cursor:grabbing}
     <div class="board-wrap" id="boardWrap">
       <div class="board-frame" id="boardFrame">
         <canvas id="cv"></canvas>
-        <div class="ticker" id="ticker"></div>
-        <div class="card" id="card"></div>
+        <div class="hit" id="hit"></div>
         <div class="banner" id="banner"><b id="banT">DYNAMAX</b><small id="banS"></small></div>
-        <div class="spot" id="spot"><div class="rays"></div><div class="hint" id="spHint"></div><img id="spImg" alt=""><div class="name" id="spName"></div><div class="meta" id="spMeta"></div><div class="tap">點一下繼續（珠子不會停）</div></div>
         <div class="toast" id="toast"></div>
         <div class="pause-ov" id="pauseOv"><b>暫停中</b><button class="btn primary" data-act="pause">▶ 繼續</button></div>
       </div>
@@ -260,14 +242,17 @@ canvas:active{cursor:grabbing}
     <div class="panel red">
       <h3>這次落珠</h3>
       <div class="kv">
+        <span>第幾回</span><b data-k="rounds">1</b>
+        <span>這回剩下</span><b data-k="left">10</b>
         <span>放下的珠</span><b data-k="drops">0</b>
-        <span>抓到</span><b data-k="caught">0</b>
+        <span>中了</span><b data-k="caught">0</b>
+        <span>落空</span><b data-k="miss">0</b>
         <span>新登錄</span><b data-k="newdex">0</b>
         <span>極巨珠</span><b data-k="dmax">0</b>
         <span>傳說格</span><b data-k="legendRuns">0</b>
         <span>進化</span><b data-k="evos">0</b>
       </div>
-      <p class="keys"><kbd>←</kbd><kbd>→</kbd> 移動　<kbd>Space</kbd> 放珠<br><kbd>A</kbd> 自動　<kbd>P</kbd> 暫停　<kbd>D</kbd> 圖鑑</p>
+      <p class="keys"><kbd>←</kbd><kbd>→</kbd> 移動　<kbd>Space</kbd> 放珠／下一回<br><kbd>A</kbd> 自動　<kbd>P</kbd> 暫停　<kbd>D</kbd> 圖鑑</p>
     </div>
   </aside>
 </div>
@@ -281,6 +266,13 @@ canvas:active{cursor:grabbing}
   </div>
 </div>
 
+<div class="modal" id="mSum">
+  <div class="sheet sum">
+    <div class="sheet-head"><b id="sumT">第 1 回 結果</b><span class="sumhit" id="sumHit"></span></div>
+    <div class="sheet-body sumbody"><div class="sumgrid" id="sumGrid"></div><div class="sumevo" id="sumEvo"></div></div>
+    <div class="sheet-foot"><span class="note" id="sumNote"></span><button class="btn ghost" data-act="dex" style="margin-left:auto">📖 圖鑑</button><button class="btn next" id="sumNext">▶ 再來 10 顆</button></div>
+  </div>
+</div>
 <script src="data.js"></script>
 <script src="../shared/collect.js"></script>
 <script src="game.js"></script>
