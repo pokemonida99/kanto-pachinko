@@ -18,6 +18,8 @@
 | 釣魚台 | `fishing/` | 全國水系 154 | 甩竿、浮標下沉點一下、深海出稀有、寶箱與傳說 |
 | 夾娃娃機 | `claw/` | 全國 1025 | 夾玩偶、五次沒中第六次必抓、傳說玩偶 |
 
+大廳另外放了兩台獨立網站的機台連結：[P 寶可夢 雷光RUSH](https://pokemonida99.github.io/pachinko-modern/) 與 [寶可夢小瑪莉](https://pokemonida99.github.io/pokemon-little-mary/)（各自存檔，不進全國圖鑑）。
+
 每台的玩法細節看各資料夾裡的 README。各世代用該世代的地區圖鑑編號（含舊角）；跨世代台與大廳的全國圖鑑用全國編號。
 
 ## 共同規則
