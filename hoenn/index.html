@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#06111c">
+<title>豐緣彈珠研究所</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg0:#06111c; --bg1:#0b1f33; --glass:rgba(255,255,255,.06); --glass2:rgba(255,255,255,.11); --line:rgba(255,255,255,.14);
+  --txt:#f1f7ff; --mut:#93a8c4; --ruby:#b3123a; --ruby2:#ff4d6d; --sapph:#1448b8; --sapph2:#4f8dff; --emer:#2fd6a0; --gold:#ffd166; --led:#ff9a2e; --violet:#a78bfa; --red:#ff4d5e; --blue:#60a5fa;
+  --num:"Orbitron","Noto Sans TC",sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;background:var(--bg0);color:var(--txt);font-family:"Noto Sans TC",system-ui,sans-serif}
+body{background:
+  radial-gradient(ellipse 70% 50% at 0% 100%,rgba(179,18,58,.35) 0%,transparent 60%),
+  radial-gradient(ellipse 70% 50% at 100% 100%,rgba(20,72,184,.4) 0%,transparent 60%),
+  radial-gradient(ellipse 50% 40% at 50% 0%,rgba(47,214,160,.16) 0%,transparent 60%),
+  linear-gradient(#06111c,#071a2a 60%,#041018)}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;border:0;background:none}
+#app{height:100vh;height:100dvh;display:grid;grid-template-columns:minmax(0,1fr);padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.side{display:none}
+.stage{display:flex;flex-direction:column;min-height:0;height:100%;padding:6px 8px 8px;gap:6px}
+
+/* ===== 背板 backglass ===== */
+.backglass{flex:none;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;gap:6px 8px;background:linear-gradient(180deg,#1b2a44,#0d1a2c);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:7px 8px;box-shadow:0 8px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08)}
+.bg-brand{display:flex;align-items:center;gap:8px;min-width:0}
+.logo{width:40px;height:40px;border-radius:50%;flex:none;position:relative;background:conic-gradient(from -90deg,var(--ruby) 0 180deg,var(--sapph) 180deg 360deg);box-shadow:0 0 0 2px #06111c,0 0 18px rgba(47,214,160,.5)}
+.logo::after{content:"";position:absolute;inset:30%;border-radius:50%;background:var(--emer);box-shadow:0 0 0 3px #06111c,0 0 10px var(--emer)}
+.bg-brand b{display:block;font-size:15px;font-weight:900;letter-spacing:.5px;white-space:nowrap;line-height:1.15}
+.bg-brand small{display:block;font:700 9px var(--num);color:var(--mut);letter-spacing:2px}
+.dmd{position:relative;display:grid;grid-template-columns:auto 1fr 1fr auto;gap:0 6px;align-items:center;background:#1a0a04;border-radius:10px;padding:5px 8px 12px;border:1px solid #3a1a0a;box-shadow:inset 0 0 18px rgba(0,0,0,.8);min-height:52px;overflow:hidden}
+.dmd::after{content:"";position:absolute;inset:0;background-image:radial-gradient(circle,transparent 34%,rgba(0,0,0,.55) 40%);background-size:4px 4px;pointer-events:none;border-radius:10px}
+.dm{min-width:0;color:var(--led);text-shadow:0 0 6px rgba(255,154,46,.9),0 0 14px rgba(255,120,20,.45);line-height:1.05}
+.dm small{display:block;font:700 8px var(--num);letter-spacing:1.5px;opacity:.75;white-space:nowrap}
+.dm b{display:flex;align-items:center;gap:5px;font:800 20px var(--num);white-space:nowrap}
+.dm.big b{font-size:26px}
+.dm .of{font-size:11px;opacity:.7}
+.dm em{display:block;font-style:normal;font-size:10px;font-weight:700;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dm .cnt{font-size:16px}
+.dm.wx b{font-size:18px}
+.dm.wx .ico{font-family:"Noto Sans TC",system-ui;font-size:20px;text-shadow:none;filter:drop-shadow(0 0 6px rgba(255,154,46,.8))}
+.dmd.low .dm.big b{color:#ff3b4e;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.4}}
+.gb{width:16px;height:16px;border-radius:50%;flex:none;box-shadow:0 0 0 1.5px rgba(0,0,0,.6),0 0 6px currentColor}
+.gb.steel{background:radial-gradient(circle at 35% 30%,#fff,#b9c4d8 45%,#59627d)}
+.gb.ruby{background:radial-gradient(circle at 35% 30%,#ffb3c1,#e8164f 45%,#6b0020)}
+.gb.sapphire{background:radial-gradient(circle at 35% 30%,#bcd4ff,#2b6cff 45%,#0a1f6b)}
+.gb.emerald{background:radial-gradient(circle at 35% 30%,#c8ffe9,#1fbf85 45%,#064d34)}
+.pwr{position:absolute;left:8px;right:8px;bottom:4px;height:5px;border-radius:3px;background:rgba(255,154,46,.15);overflow:hidden}
+.pwr i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffd166,#ff9a2e,#ff3b4e);box-shadow:0 0 8px rgba(255,154,46,.8)}
+.bg-ctl{grid-column:1/-1;display:flex;align-items:stretch;gap:6px;position:relative;padding-top:3px}
+.tiltbar{position:absolute;left:0;right:0;top:-2px;height:3px;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden}
+.tiltbar i{display:block;height:100%;width:0;background:var(--emer);transition:width .1s}
+.tiltbar i.hot{background:var(--red)}
+.boxbtn{position:relative;flex:1;min-width:0;height:44px;border-radius:12px;background:linear-gradient(135deg,rgba(255,77,109,.28),rgba(79,141,255,.22));border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;gap:7px;padding:0 8px}
+.boxbtn:active{transform:scale(.97)}
+.boxbtn .ringt{width:34px;height:34px;flex:none;position:relative}
+.boxbtn .ringt svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.boxbtn .ringt b{position:absolute;inset:0;display:grid;place-items:center;font:800 13px var(--num)}
+.boxbtn .lbl{text-align:left;line-height:1.15;min-width:0}
+.boxbtn .lbl b{display:block;font-size:12px;white-space:nowrap}
+.boxbtn .lbl small{font:700 10px var(--num);color:var(--mut);white-space:nowrap}
+.boxbtn.ready{animation:glow 1.4s infinite}
+@keyframes glow{50%{box-shadow:0 0 18px rgba(255,209,102,.55)}}
+.nudge{width:58px;height:44px;border-radius:12px;background:var(--glass);border:1px solid var(--line);font:800 13px var(--num);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;gap:2px}
+.nudge small{font:700 8px var(--num);color:var(--mut);letter-spacing:1px}
+.nudge:active{background:rgba(47,214,160,.2);transform:scale(.95)}
+.nudge.locked{opacity:.4}
+.ibtn{width:44px;height:44px;border-radius:12px;background:var(--glass);border:1px solid var(--line);display:grid;place-items:center;font-size:17px;flex:none}
+.ibtn:active{transform:scale(.94)}
+.ibtn.on{background:rgba(255,209,102,.18);border-color:rgba(255,209,102,.5)}
+
+/* ===== 棋盤 ===== */
+.board-wrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative}
+.board-frame{position:relative;border-radius:14px;overflow:hidden;box-shadow:0 0 0 2px #3b2a12,0 0 0 4px #8a6a2a,0 0 30px rgba(47,214,160,.15),0 20px 50px rgba(0,0,0,.55)}
+canvas{display:block;width:100%;height:100%;touch-action:none;cursor:pointer}
+.wxov{position:absolute;inset:0;pointer-events:none;transition:background 1.2s;background:rgba(255,140,40,.07)}
+body.wx-rain .wxov{background:rgba(30,80,200,.16)}
+body.wx-clear .wxov{background:rgba(47,214,160,.12)}
+.toast{position:absolute;left:50%;top:44px;transform:translate(-50%,-8px);background:rgba(6,17,28,.86);border:1px solid var(--line);color:var(--txt);font-size:13px;font-weight:700;padding:6px 14px;border-radius:99px;white-space:nowrap;opacity:0;transition:.25s;pointer-events:none;max-width:92%;overflow:hidden;text-overflow:ellipsis;z-index:3}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.banner{position:absolute;left:50%;top:30%;width:min(92%,380px);transform:translate(-50%,-10px) scale(.92);opacity:0;transition:.3s cubic-bezier(.2,1.4,.4,1);pointer-events:none;display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:18px;background:rgba(8,20,36,.9);border:1px solid rgba(47,214,160,.6);box-shadow:0 0 30px rgba(47,214,160,.3);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);z-index:3}
+.banner.show{opacity:1;transform:translate(-50%,0) scale(1)}
+.banner img{width:76px;height:76px;object-fit:contain}
+.banner img.sil{filter:brightness(0) drop-shadow(0 0 8px rgba(255,255,255,.8))}
+.banner .tag{display:inline-block;font-size:11px;font-weight:900;padding:1px 8px;border-radius:99px;background:var(--emer);color:#06301f}
+.banner b{display:block;font-size:26px;font-weight:900;line-height:1.25}
+.banner span.sub{font-size:12px;color:var(--mut)}
+.banner.shiny{border-color:rgba(255,209,102,.7);box-shadow:0 0 30px rgba(255,209,102,.35)}
+.banner.shiny .tag{background:var(--gold);color:#2a1d00}
+.bflash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:2}
+.bflash.go{animation:fl .7s ease-out}
+.pause-ov{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(6,17,28,.66);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);z-index:4}
+.pause-ov.show{display:flex}
+.pause-ov b{font-size:24px;font-weight:900;letter-spacing:4px}
+.tiltmsg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-8deg);font:900 54px var(--num);color:var(--red);text-shadow:0 0 20px rgba(255,77,94,.8);display:none;pointer-events:none;z-index:3}
+.tiltmsg.show{display:block;animation:blink .4s infinite}
+
+/* ===== 底部：兩個翻板鈕 ===== */
+.dock{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.flip{height:64px;border-radius:16px;border:1px solid rgba(255,255,255,.2);font:900 22px var(--num);letter-spacing:2px;display:flex;align-items:center;justify-content:center;gap:10px;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 6px 0 rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.25);transition:transform .05s,box-shadow .05s}
+.flip small{font:700 10px var(--num);color:rgba(255,255,255,.7);letter-spacing:1px}
+.flip.l{background:linear-gradient(180deg,#e0325d,#8d0d2d)}
+.flip.r{background:linear-gradient(180deg,#3a7bff,#0f3694)}
+.flip.on,.flip:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.25)}
+.flip.l.on{background:linear-gradient(180deg,#ff5f85,#b3123a)}
+.flip.r.on{background:linear-gradient(180deg,#5f9bff,#1448b8)}
+
+/* ===== 側欄（桌機） ===== */
+.card{background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:14px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.card h3{margin:0 0 10px;font-size:13px;color:var(--mut);font-weight:700;letter-spacing:1px}
+.side.ruby .card{background:linear-gradient(160deg,rgba(179,18,58,.32),rgba(179,18,58,.08));border-color:rgba(255,77,109,.35)}
+.side.sapph .card{background:linear-gradient(160deg,rgba(20,72,184,.36),rgba(20,72,184,.08));border-color:rgba(79,141,255,.35)}
+.side-hero{display:flex;align-items:center;gap:10px;padding:10px 14px}
+.side-hero img{width:64px;height:64px;object-fit:contain;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
+.side-hero b{display:block;font-size:16px;font-weight:900}
+.side-hero small{font:700 10px var(--num);letter-spacing:2px;color:var(--mut)}
+.prog{display:grid;grid-template-columns:1fr auto;gap:4px 8px;font-size:13px;margin-bottom:10px}
+.prog .bar{grid-column:1/-1;height:6px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}
+.prog .bar i{display:block;height:100%;width:0;border-radius:6px;transition:width .8s}
+.prog .num{font:800 13px var(--num)}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px;font-size:13px}
+.kv b{font:800 15px var(--num);text-align:right}
+.recent{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.recent .rc-mini{aspect-ratio:1;border-radius:10px;background:rgba(255,255,255,.06);display:grid;place-items:center;position:relative}
+.recent img{width:86%;height:86%;object-fit:contain}
+.recent .rc-mini.shiny{box-shadow:inset 0 0 0 1.5px var(--gold)}
+.keys{font-size:12px;color:var(--mut);line-height:1.9;margin:0;padding:0;list-style:none}
+.keys kbd{font:700 10px var(--num);background:rgba(255,255,255,.1);border-radius:5px;padding:1px 6px;color:var(--txt)}
+.rules{font-size:12px;color:var(--mut);line-height:1.8;margin:0;padding-left:18px}
+.rules .gb{display:inline-block;vertical-align:-3px;width:12px;height:12px;margin-right:3px}
+@media (min-width:1000px){
+  #app{grid-template-columns:260px minmax(0,620px) 260px;justify-content:center;gap:20px;padding:14px}
+  .side{display:flex;flex-direction:column;gap:12px;min-height:0;overflow:hidden;padding-top:8px}
+  .stage{padding:0}
+}
+
+/* ===== 抽屜 ===== */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.25s;z-index:30}
+.scrim.show{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(86vw,320px);background:rgba(8,20,36,.97);border-left:1px solid var(--line);transform:translateX(100%);transition:transform .3s cubic-bezier(.2,.9,.3,1);z-index:31;display:flex;flex-direction:column;padding:calc(14px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom))}
+.drawer.show{transform:none}
+.dr-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.dr-head b{font-size:18px;font-weight:900}
+.dr-body{flex:1;overflow:auto;display:flex;flex-direction:column;gap:12px;padding-right:2px}
+.dr-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dr-btns button{background:var(--glass2);border-radius:12px;padding:12px 8px;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px}
+.dr-btns button.wide{grid-column:1/-1}
+.toggle{display:flex;align-items:center;justify-content:space-between;padding:8px 2px;font-size:14px;font-weight:700}
+.sw{width:46px;height:26px;border-radius:99px;background:rgba(255,255,255,.15);position:relative;transition:.2s}
+.sw::after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+.sw.on{background:var(--emer)}
+.sw.on::after{left:23px;background:#06301f}
+details.debug{background:rgba(255,255,255,.04);border-radius:12px;padding:8px 12px;font-size:13px}
+details.debug summary{cursor:pointer;font-weight:700;color:var(--mut)}
+details.debug .row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+details.debug button{background:var(--glass2);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700}
+details.debug button.on{background:rgba(255,209,102,.3)}
+
+/* 精靈球 CSS */
+.pb{--top:var(--red);width:18px;height:18px;border-radius:50%;flex:none;position:relative;background:linear-gradient(var(--top) 0 44%,#0b0f24 44% 56%,#f4f6ff 56%);box-shadow:0 0 0 2px #0b0f24}
+.pb::after{content:"";position:absolute;inset:33%;border-radius:50%;background:#f4f6ff;box-shadow:0 0 0 2px #0b0f24}
+.pb.great{--top:#3b82f6}.pb.ultra{--top:#2a2a2a}.pb.master{--top:#8b5cf6}
+.pb.great::before{content:"";position:absolute;left:8%;right:8%;top:10%;height:30%;border-left:3px solid var(--red);border-right:3px solid var(--red);border-radius:50% 50% 0 0}
+.pb.ultra::before{content:"";position:absolute;left:24%;right:24%;top:5%;height:38%;border-left:3px solid var(--gold);border-right:3px solid var(--gold)}
+.pb.master::before{content:"M";position:absolute;left:0;right:0;top:2%;text-align:center;color:#fff;font:800 .4em/1.4 var(--num)}
+
+/* 彈窗共用 */
+.modal{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;background:rgba(3,8,16,.84);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom))}
+.modal.show{display:flex}
+.sheet{width:100%;max-width:760px;height:100%;max-height:820px;display:flex;flex-direction:column;background:linear-gradient(160deg,rgba(40,20,40,.96),rgba(10,30,60,.96));border:1px solid var(--line);border-radius:22px;padding:14px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.sheet-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex:none}
+.sheet-head .tagc{font-size:11px;font-weight:900;padding:2px 10px;border-radius:99px;background:var(--gold);color:#2a1d00}
+.sheet-head h2{margin:0;font-size:20px;font-weight:900}
+.sheet-head .right{margin-left:auto;font:600 12px var(--num);color:var(--mut)}
+.sheet-body{flex:1;min-height:0;position:relative}
+.sheet-foot{flex:none;display:flex;align-items:center;gap:10px;margin-top:12px}
+.sheet-foot .note{font-size:12px;color:var(--mut);margin-right:auto}
+.btn{border-radius:12px;padding:11px 20px;font-weight:900;font-size:15px;white-space:nowrap}
+.btn.primary{background:linear-gradient(135deg,var(--emer),#1fa4e0);color:#03201a;box-shadow:0 4px 18px rgba(47,214,160,.35)}
+.btn.ghost{background:var(--glass2)}
+.btn:disabled{opacity:.4}
+
+/* 開箱卡片 */
+.rgrid{display:grid;gap:8px;justify-content:center;align-content:center;height:100%;overflow:auto}
+.rc{position:relative;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid var(--line);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px}
+.rc .no{position:absolute;left:7px;top:5px;font:600 9px var(--num);color:var(--mut)}
+.rc img{width:68%;aspect-ratio:1;object-fit:contain}
+.rc .nm{font-size:13px;font-weight:900;margin-top:2px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.rc .badges{position:absolute;right:5px;top:5px;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.badge{font:800 9px/15px var(--num);padding:0 6px;border-radius:6px;background:var(--red);color:#fff;letter-spacing:.5px}
+.badge.t{font-family:"Noto Sans TC";font-weight:900}
+.badge.shiny{background:linear-gradient(90deg,#ff5f9e,#ffb340,#4aa8ff)}
+.badge.rare{background:var(--blue)}.badge.srare{background:#f59e0b}.badge.legend{background:var(--violet)}
+.rc .ballw{position:absolute;inset:0;display:grid;place-items:center;background:radial-gradient(circle,rgba(255,255,255,.08),transparent 70%);transition:.25s}
+.rc .ballw .pb{width:44%;height:auto;aspect-ratio:1;animation:wob .6s infinite}
+.rc .ballw .pb::after{box-shadow:0 0 0 3px #0b0f24}
+.rc .ballw .pb.great::before,.rc .ballw .pb.ultra::before{border-width:0 6px}
+.rc .ballw .pb.master::before{font-size:16px}
+@keyframes wob{0%,100%{transform:rotate(0)}25%{transform:rotate(-14deg)}75%{transform:rotate(14deg)}}
+.rc.ball .no,.rc.ball img,.rc.ball .nm,.rc.ball .badges{visibility:hidden}
+.rc:not(.ball) .ballw{opacity:0;transform:scale(1.8);pointer-events:none}
+.rc.sil img{filter:brightness(0) drop-shadow(0 0 6px rgba(255,255,255,.65))}
+.rc.sil .badges,.rc.sil .no{visibility:hidden}
+.rc.sil.hot{animation:pulse .5s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 2px var(--gold),0 0 22px rgba(255,209,102,.6)}}
+.rc.show{animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+.rc.show::after{content:"";position:absolute;inset:0;background:#fff;animation:wf .45s forwards;pointer-events:none}
+@keyframes pop{0%{transform:scale(.85)}60%{transform:scale(1.06)}100%{transform:none}}
+@keyframes wf{0%{opacity:.95}100%{opacity:0}}
+.rc.show.rare{border-color:rgba(96,165,250,.7);background:linear-gradient(rgba(96,165,250,.18),rgba(255,255,255,.03))}
+.rc.show.srare{border-color:rgba(251,191,36,.8);background:linear-gradient(rgba(251,191,36,.2),rgba(255,255,255,.03))}
+.rc.show.legend{border-color:rgba(167,139,250,.9);background:linear-gradient(rgba(167,139,250,.28),rgba(255,209,102,.08))}
+.rc.show.isshiny{box-shadow:0 0 0 2px var(--gold),0 0 16px rgba(255,209,102,.5)}
+
+/* 聚光燈揭曉 */
+.spot{position:fixed;inset:0;z-index:45;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:radial-gradient(circle at 50% 45%,rgba(20,60,80,.96),rgba(3,8,16,.98) 65%);overflow:hidden;cursor:pointer}
+.spot.show{display:flex}
+.spot .rays{position:absolute;left:50%;top:45%;width:170vmax;height:170vmax;transform:translate(-50%,-50%);background:repeating-conic-gradient(var(--ray,rgba(255,255,255,.07)) 0 8deg,transparent 8deg 20deg);border-radius:50%;animation:spin 14s linear infinite;-webkit-mask:radial-gradient(circle,#000 10%,transparent 60%);mask:radial-gradient(circle,#000 10%,transparent 60%)}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.spot .hint{position:relative;font-size:clamp(20px,5vw,30px);font-weight:900;letter-spacing:3px;color:var(--hint,#fff);text-shadow:0 0 18px currentColor;animation:blink .5s infinite}
+.spot img{position:relative;width:min(62vw,300px);aspect-ratio:1;object-fit:contain;filter:brightness(0) drop-shadow(0 0 14px rgba(255,255,255,.85));animation:breath 0.35s infinite alternate}
+@keyframes breath{to{transform:scale(1.04)}}
+.spot .name{position:relative;font-size:clamp(30px,8vw,46px);font-weight:900;letter-spacing:2px}
+.spot .meta{position:relative;display:flex;gap:6px;align-items:center;min-height:20px;font:600 12px var(--num);color:var(--mut)}
+.spot .tap{position:absolute;bottom:calc(24px + env(safe-area-inset-bottom));font-size:12px;color:var(--mut);opacity:0}
+.spot.revealed img{filter:drop-shadow(0 10px 20px rgba(0,0,0,.5));animation:popin .6s cubic-bezier(.2,1.6,.4,1)}
+.spot.revealed .hint{animation:none}
+.spot.revealed .tap{opacity:1;transition:opacity .4s 1s}
+.spot.revealed .name{animation:popin .5s cubic-bezier(.2,1.6,.4,1)}
+.spot.shiny.revealed .name{background:linear-gradient(90deg,#ff5f9e,#ffb340,#6ee7b7,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
+@keyframes popin{0%{transform:scale(.4);opacity:0}100%{transform:none;opacity:1}}
+.flash{position:fixed;inset:0;z-index:50;pointer-events:none;opacity:0;background:#fff}
+.flash.go{animation:fl .75s ease-out}
+.flash.rainbow{background:radial-gradient(circle,#fff 20%,#ffe9a8 45%,#ffb3e1 70%,#b8e4ff)}
+@keyframes fl{0%{opacity:0}12%{opacity:1}100%{opacity:0}}
+
+/* 圖鑑更新頁 */
+.upd{height:100%;overflow:auto;display:flex;flex-direction:column;gap:14px}
+.upd h4{margin:0 0 8px;font-size:13px;color:var(--mut);letter-spacing:1px}
+.upd .prog{margin:0}
+.plus{font:800 11px var(--num);color:#2a1d00;background:var(--gold);border-radius:6px;padding:0 6px;margin-left:4px}
+.evos{display:flex;flex-wrap:wrap;gap:8px}
+.evo{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.06);border-radius:12px;padding:4px 10px 4px 4px;font-size:12px;font-weight:700}
+.evo img{width:40px;height:40px;object-fit:contain}
+.evo .ar{color:var(--gold)}
+.news{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px}
+.news div{background:rgba(255,255,255,.05);border-radius:10px;text-align:center;padding:4px 2px;font-size:10px;font-weight:700;position:relative}
+.news img{width:100%;aspect-ratio:1;object-fit:contain}
+.empty{color:var(--mut);font-size:13px;text-align:center;padding:10px}
+
+/* 圖鑑 */
+.dex-top{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-bottom:10px;font-size:12px;color:var(--mut)}
+.dex-top b{font:800 15px var(--num);color:var(--txt)}
+.tabs{display:flex;gap:6px;margin-left:auto}
+.tabs button{border-radius:99px;padding:5px 12px;background:var(--glass2);font-size:12px;font-weight:700}
+.tabs button.on{background:var(--emer);color:#06301f}
+.dexgrid{display:grid;gap:6px;height:100%}
+.dcell{border-radius:12px;background:rgba(255,255,255,.05);border:1px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;min-height:0;overflow:hidden;cursor:pointer}
+.dcell img{height:62%;aspect-ratio:1;object-fit:contain}
+.dcell.miss img{filter:brightness(0);opacity:.35}
+.dcell .n{position:absolute;left:6px;top:4px;font:600 8px var(--num);color:var(--mut)}
+.dcell .c{position:absolute;right:6px;top:4px;font:800 9px var(--num);color:var(--gold)}
+.dcell .nm{font-size:11px;font-weight:700;white-space:nowrap;max-width:94%;overflow:hidden;text-overflow:ellipsis}
+.dcell.sh{border-color:rgba(255,209,102,.6);background:linear-gradient(rgba(255,209,102,.15),rgba(255,255,255,.03))}
+.dcell .st{position:absolute;right:6px;bottom:4px;font-size:10px}
+.pager{display:flex;align-items:center;gap:10px}
+.pager button{width:40px;height:40px;border-radius:12px;background:var(--glass2);font-size:20px;font-weight:900}
+.pager span{font:800 13px var(--num);min-width:56px;text-align:center}
+
+/* 統計 */
+.stbody{display:flex;flex-direction:column;gap:10px;overflow:auto}
+.stgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:5px}
+.stile{background:rgba(255,255,255,.06);border-radius:10px;padding:4px 8px;min-width:0}
+.stile small{display:block;font-size:10px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stile b{font:800 15px var(--num)}
+.stile em{font:600 9px var(--num);color:var(--emer);font-style:normal;margin-left:3px}
+.strow{display:flex;gap:6px;flex-wrap:wrap}
+.strow .chipb{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.06);border-radius:10px;padding:3px 8px;font-size:12px;font-weight:700}
+.strow .chipb b{font:800 13px var(--num)}
+.sttop{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.sttop div{background:rgba(255,255,255,.05);border-radius:12px;text-align:center;padding:4px 2px 6px;position:relative;font-size:11px;font-weight:700}
+.sttop div:first-child{background:linear-gradient(rgba(255,209,102,.25),rgba(255,255,255,.04));box-shadow:inset 0 0 0 1.5px rgba(255,209,102,.6)}
+.sttop img{width:100%;aspect-ratio:1;object-fit:contain}
+.sttop i{position:absolute;left:6px;top:4px;font:800 11px var(--num);font-style:normal;color:var(--gold)}
+.stsec h4{margin:0 0 6px;font-size:12px;color:var(--mut);letter-spacing:1px}
+@media (max-width:520px){.stbody{gap:8px}}
+/* 挑戰 */
+.ch-card{display:flex;flex-direction:column;gap:8px}
+.ch-card h3{margin:0}
+.chbtn{text-align:left;background:linear-gradient(135deg,rgba(255,209,102,.16),rgba(47,214,160,.16));border:1px solid rgba(255,209,102,.3);border-radius:12px;padding:9px 12px;display:grid;gap:1px}
+.chbtn b{font-size:14px}
+.chbtn small{font-size:11px;color:var(--mut)}
+.chbtn em{font:700 11px var(--num);font-style:normal;color:var(--gold)}
+.side-btn{background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:12px;font-weight:700;font-size:14px}
+.side-btn:hover{background:var(--glass2)}
+body.challenge .dmd .dm.big b{color:#7df0ff}
+body.challenge .gift-card{display:none}
+.gift-card h3{margin:0 0 8px}
+.gift-card button{background:linear-gradient(135deg,rgba(255,77,109,.25),rgba(255,209,102,.18))}
+.sum-rec{text-align:center;font-weight:900;font-size:15px;color:var(--gold);min-height:0}
+.sum-rec:empty{display:none}
+#sumExit{display:none}
+body.challenge #sumExit{display:inline-block}
+
+/* 結算 */
+.sum{max-width:420px;height:auto;max-height:100%}
+.sum .best{display:flex;flex-direction:column;align-items:center;padding:6px 0 12px}
+.sum .best img{width:min(46vw,170px);aspect-ratio:1;object-fit:contain;filter:drop-shadow(0 8px 18px rgba(0,0,0,.5))}
+.sum .best b{font-size:22px;font-weight:900}
+.sum .best small{color:var(--mut);font-size:12px}
+.sum .grid4{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sum .grid4 div{background:rgba(255,255,255,.06);border-radius:12px;padding:10px;text-align:center}
+.sum .grid4 small{display:block;color:var(--mut);font-size:11px}
+.sum .grid4 b{font:800 22px var(--num)}
+
+@media (hover:none){.flip small{display:none}.nudge small{font-size:7px}}
+@media (max-width:520px){#mDex .sheet-foot .note{display:none}#mDex .pager{margin-right:auto}}
+@media (max-width:440px){
+  .bg-brand b,.bg-brand small{display:none}
+  .dmd{grid-template-columns:auto 1fr 1fr auto;gap:0 4px;padding:4px 6px 10px}
+  .dm b{font-size:16px}.dm.big b{font-size:22px}.dm.wx b{font-size:15px}.dm .cnt{font-size:14px}.dm em{font-size:9px}
+  .nudge{width:50px}
+}
+@media (max-width:360px){.dm em{display:none}}
+@media (prefers-reduced-motion:reduce){.spot .rays,.rc .ballw .pb{animation:none}}
+</style>
+</head>
+<body class="wx-sun">
+<div id="app">
+  <aside class="side ruby">
+    <section class="card side-hero"><img src="assets/n383.webp" alt=""><div><b>固拉多面板</b><small>RUBY · GROUDON</small></div></section>
+    <section class="card">
+      <h3>收集進度</h3>
+      <div class="prog"><span>豐緣圖鑑</span><span class="num"><span data-k="dex">0</span>/202</span><div class="bar"><i data-bar="dex" style="background:linear-gradient(90deg,#2fd6a0,#4f8dff)"></i></div></div>
+      <div class="prog"><span>閃光</span><span class="num"><span data-k="shiny">0</span>/202</span><div class="bar"><i data-bar="shiny" style="background:linear-gradient(90deg,#ff5f9e,#ffd166)"></i></div></div>
+      <div class="prog"><span>傳說</span><span class="num"><span data-k="legend">0</span>/10</span><div class="bar"><i data-bar="legend" style="background:linear-gradient(90deg,#a78bfa,#ff4fa3)"></i></div></div>
+    </section>
+    <section class="card">
+      <h3>本局</h3>
+      <div class="kv"><span>剩餘彈珠</span><b data-k="balls">100</b><span>已發射</span><b data-k="shots">0</b><span>捕獲</span><b data-k="caught">0</b><span>新登錄</span><b data-k="newdex">0</b></div>
+    </section>
+    <section class="card">
+      <h3>最近捕獲</h3>
+      <div class="recent" data-recent></div>
+    </section>
+    <button class="side-btn" id="sideStats">📊 數據統計</button>
+  </aside>
+
+  <main class="stage">
+    <header class="backglass">
+      <div class="bg-brand"><span class="logo"></span><div><b>豐緣彈珠研究所</b><small id="brandSub">HOENN · 202</small></div></div>
+      <div class="dmd" id="dmd">
+        <div class="dm big"><small>BALLS</small><b data-k="balls">100</b></div>
+        <div class="dm wx"><small>WEATHER</small><b><span class="ico" id="dmWx">☀</span><span class="cnt" id="dmWxT">25</span></b><em id="dmWxN">晴天：翻板 +25%</em></div>
+        <div class="dm"><small>NEXT</small><b><span class="gb steel" id="dmNext"></span><span id="dmNextN" style="font-size:13px">鋼珠</span></b><em id="dmGem">轉輪：未定</em></div>
+        <div class="dm"><small>DEX</small><b><span data-k="dex">0</span><span class="of">/202</span></b></div>
+        <div class="pwr"><i id="pwrBar"></i></div>
+      </div>
+      <div class="bg-ctl">
+        <div class="tiltbar"><i id="tiltBar"></i></div>
+        <button class="boxbtn" id="btnBox" aria-label="開箱">
+          <span class="ringt"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="4"/><circle id="boxRing" cx="20" cy="20" r="17" fill="none" stroke="#ffd166" stroke-width="4" stroke-linecap="round" stroke-dasharray="106.8" stroke-dashoffset="106.8"/></svg><b id="boxCnt">0</b></span>
+          <span class="lbl"><b>收集倉</b><small id="boxTime">開箱 30s</small></span>
+        </button>
+        <button class="nudge" id="nudgeL">◀<small>NUDGE A</small></button>
+        <button class="nudge" id="nudgeR">▶<small>NUDGE D</small></button>
+        <button class="ibtn" id="btnPause" aria-label="暫停">⏸</button>
+        <button class="ibtn" id="btnMenu" aria-label="選單">☰</button>
+      </div>
+    </header>
+
+    <div class="board-wrap" id="boardWrap">
+      <div class="board-frame" id="boardFrame">
+        <canvas id="cv"></canvas>
+        <div class="wxov"></div>
+        <div class="toast" id="toast"></div>
+        <div class="banner" id="banner"><img alt=""><div><span class="tag"></span><b></b><span class="sub"></span></div></div>
+        <div class="bflash" id="bflash"></div>
+        <div class="tiltmsg" id="tiltMsg">TILT</div>
+        <div class="pause-ov" id="pauseOv"><b>已暫停</b><button class="btn primary" id="btnResume">▶ 繼續</button></div>
+      </div>
+    </div>
+
+    <footer class="dock">
+      <button class="flip l" id="flipL">◀ FLIP<small>Z / ←</small></button>
+      <button class="flip r" id="flipR"><small>X / →</small>FLIP ▶</button>
+    </footer>
+  </main>
+
+  <aside class="side sapph">
+    <section class="card side-hero"><img src="assets/n382.webp" alt=""><div><b>蓋歐卡面板</b><small>SAPPHIRE · KYOGRE</small></div></section>
+    <section class="card">
+      <h3>操作</h3>
+      <ul class="keys">
+        <li><kbd>Space</kbd> 按住蓄力、放開發射（右下拉桿）</li>
+        <li><kbd>Z</kbd> <kbd>←</kbd> 左翻板　<kbd>X</kbd> <kbd>→</kbd> 右翻板</li>
+        <li><kbd>A</kbd> <kbd>D</kbd> 搖台（搖太多會 TILT）</li>
+        <li><kbd>P</kbd> 暫停　<kbd>B</kbd> 開箱　<kbd>C</kbd> 圖鑑　<kbd>S</kbd> 統計</li>
+      </ul>
+    </section>
+    <section class="card">
+      <h3>規則</h3>
+      <ul class="rules">
+        <li>一局 100 顆彈珠，入口得精靈球</li>
+        <li>天氣 25 秒輪替：☀ 翻板 +25%／🌧 重力 ×0.85、入口變寬／🌈 入口 ×2</li>
+        <li>R·S·E 全倒：天空之柱開 10 秒，+15 珠</li>
+        <li>頂部寶石轉輪：決定下一顆寶石珠，★ 送 +5 珠</li>
+        <li><span class="gb ruby"></span>碰釘 1.5 秒後爆炸推珠　<span class="gb sapphire"></span>超彈　<span class="gb emerald"></span>碰翻板分裂</li>
+        <li>兩側外線道：傳說充能；流失口也會少量充能</li>
+        <li>3 隻相同自動進化</li>
+      </ul>
+    </section>
+    <button class="side-btn" id="sideCh">🏆 挑戰與紀錄</button>
+  </aside>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<nav class="drawer" id="drawer" aria-label="選單">
+  <div class="dr-head"><b>選單</b><button class="ibtn" id="drClose" aria-label="關閉">✕</button></div>
+  <div class="dr-body">
+    <div class="dr-btns">
+      <button id="drPause">⏸ 暫停</button>
+      <button id="drDex">📗 圖鑑</button>
+      <button id="drBox">🎁 立即開箱</button>
+      <button id="drNew">🔄 重開一局</button>
+      <button id="drStats">📊 數據統計</button>
+      <button id="drLobby" class="wide">🏠 回大廳（換世代）</button>
+    </div>
+    <div class="card gift-card">
+      <h3>🎁 禮物</h3>
+      <div class="dr-btns">
+        <button id="giftBalls">🔴 送 100 顆彈珠</button>
+        <button id="giftPoke">✨ 立刻得到稀有寶可夢</button>
+      </div>
+    </div>
+    <div class="card ch-card">
+      <h3>🏆 挑戰</h3>
+      <button class="chbtn" data-ch="500"><b>500 顆收集賽</b><small>500 顆彈珠能收集幾種</small><em data-rec="500">還沒有紀錄</em></button>
+    </div>
+    <div class="card" style="padding:8px 14px">
+      <div class="toggle"><span>🎵 背景音樂</span><button class="sw" id="swMusic" aria-label="背景音樂"></button></div>
+      <div class="toggle"><span>🔔 音效</span><button class="sw" id="swSfx" aria-label="音效"></button></div>
+    </div>
+    <div class="card">
+      <h3>收集進度</h3>
+      <div class="prog"><span>豐緣圖鑑</span><span class="num"><span data-k="dex">0</span>/202</span><div class="bar"><i data-bar="dex" style="background:linear-gradient(90deg,#2fd6a0,#4f8dff)"></i></div></div>
+      <div class="prog"><span>閃光</span><span class="num"><span data-k="shiny">0</span>/202</span><div class="bar"><i data-bar="shiny" style="background:linear-gradient(90deg,#ff5f9e,#ffd166)"></i></div></div>
+      <div class="prog"><span>傳說</span><span class="num"><span data-k="legend">0</span>/10</span><div class="bar"><i data-bar="legend" style="background:linear-gradient(90deg,#a78bfa,#ff4fa3)"></i></div></div>
+      <div class="kv" style="margin-top:6px"><span>本局捕獲</span><b data-k="caught">0</b><span>本局新登錄</span><b data-k="newdex">0</b></div>
+    </div>
+    <div class="card">
+      <h3>玩法</h3>
+      <ul class="rules">
+        <li>按住右下角拉桿（或 Space）蓄力，放開發射；按住超過 1.1 秒會連發 10 顆</li>
+        <li>點棋盤下半左／右或底部兩個大鈕打翻板，把珠打回上面；A／D 搖台，搖太兇會 TILT</li>
+        <li>落進會移動的入口得到精靈球；兩側外線道幫傳說充能（固拉多／蓋歐卡／烈空坐、三柱神）</li>
+        <li>天氣每 25 秒輪替：晴天翻板 +25%、紅寶石珠變多；雨天重力變輕、入口變寬；晴朗無雲 8 秒內入口得球 ×2、翻板打中有機會變閃光珠</li>
+        <li>打倒 R·S·E 三個標靶，天空之柱入口開 10 秒：必出高級球以上、1/8 閃光、1/50 幻之寶可夢，開啟時送 +15 珠</li>
+        <li>頂部寶石轉輪被珠撞到會轉，停下決定下一顆寶石珠的顏色；轉到 ★ 送 +5 珠</li>
+        <li>每 6 顆有 1 顆寶石珠：紅寶石碰釘 1.5 秒後爆炸推開附近的珠；藍寶石超彈、翻板打它更快；綠寶石碰翻板分裂成兩顆</li>
+        <li>每 30 秒開箱，3 隻相同自動進化</li>
+      </ul>
+    </div>
+    <details class="debug">
+      <summary>🧪 測試工具</summary>
+      <div class="row">
+        <button id="dbBalls">+100 彈珠</button>
+        <button id="dbBox">收集倉 +10</button>
+        <button id="dbSpeed">速度 ×1</button>
+        <button id="dbAuto">自動發射：關</button>
+        <button id="dbLegend">傳說充能 +50%</button>
+        <button id="dbSky">開天空之柱</button>
+        <button id="dbWx">切換天氣</button>
+        <button id="dbReset">清除存檔</button>
+      </div>
+    </details>
+  </div>
+</nav>
+
+<div class="modal" id="mReveal">
+  <div class="sheet">
+    <div class="sheet-head"><span class="tagc" id="rvTag">開箱</span><h2 id="rvTitle"></h2><span class="right" id="rvRight"></span></div>
+    <div class="sheet-body" id="rvBody"></div>
+    <div class="sheet-foot"><span class="note" id="rvNote"></span><button class="btn ghost" id="rvSkip">跳過動畫</button><button class="btn primary" id="rvNext" disabled>下一步</button></div>
+  </div>
+</div>
+<div class="spot" id="spot"><div class="rays"></div><div class="hint" id="spHint"></div><img id="spImg" alt=""><div class="name" id="spName">？？？</div><div class="meta" id="spMeta"></div><div class="tap">點一下繼續</div></div>
+<div class="flash" id="flash"></div>
+
+<div class="modal" id="mDex">
+  <div class="sheet">
+    <div class="sheet-head"><span class="tagc">圖鑑</span><h2>豐緣寶可夢圖鑑</h2><span class="right"><span data-k="dex">0</span> / 202</span></div>
+    <div class="dex-top" id="dxTop"></div>
+    <div class="sheet-body"><div class="dexgrid" id="dxGrid"></div></div>
+    <div class="sheet-foot"><span class="note">點閃光寶可夢可切換閃光圖・左右滑動換頁</span><div class="pager"><button id="dxPrev" aria-label="上一頁">‹</button><span id="dxPage">1/1</span><button id="dxNext" aria-label="下一頁">›</button></div><button class="btn primary" id="dxClose">關閉</button></div>
+  </div>
+</div>
+
+<div class="modal" id="mStats">
+  <div class="sheet">
+    <div class="sheet-head"><span class="tagc">統計</span><h2>數據統計</h2><span class="right" id="stRight"></span></div>
+    <div class="sheet-body stbody" id="stBody"></div>
+    <div class="sheet-foot"><span class="note">累計數據（一般模式與挑戰分開計算）</span><button class="btn primary" id="stClose">關閉</button></div>
+  </div>
+</div>
+
+<div class="modal" id="mSum">
+  <div class="sheet sum">
+    <div class="sheet-head"><span class="tagc">結算</span><h2 id="sumHead">本局結束</h2><span class="right" id="sumRight"></span></div>
+    <div class="sum-rec" id="sumRec"></div>
+    <div class="best" id="sumBest"></div>
+    <div class="grid4" id="sumGrid"></div>
+    <div class="sheet-foot"><button class="btn ghost" id="sumDex">看圖鑑</button><button class="btn ghost" id="sumExit">回一般模式</button><button class="btn primary" id="sumAgain" style="margin-left:auto">再來一局（100 顆）</button></div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

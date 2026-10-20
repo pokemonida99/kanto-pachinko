@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#06201a">
+<title>城都彈珠研究所</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg0:#06201a; --bg1:#0b2f28; --glass:rgba(232,200,114,.07); --glass2:rgba(232,200,114,.15); --line:rgba(232,200,114,.28);
+  --txt:#f3efe2; --mut:#9fb3a8; --gold:#e8c872; --gold2:#b8902e; --gold3:#5a3f0a; --silver:#cfd6e6; --silver2:#8d97ad;
+  --red:#ff4d5e; --blue:#60a5fa; --violet:#a78bfa; --cyan:#5ef2ff; --pink:#ff4fa3; --night:#0a1a4a;
+  --px:"Press Start 2P","Noto Sans TC",monospace; --num:var(--px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;background:var(--bg0);color:var(--txt);font-family:"Noto Sans TC",system-ui,sans-serif}
+body{background:radial-gradient(ellipse 70% 50% at 50% 0%,#164a3c 0%,transparent 60%),radial-gradient(ellipse 50% 40% at 100% 100%,#3a2d0a 0%,transparent 60%),var(--bg0)}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;border:0;background:none}
+#app{height:100vh;height:100dvh;display:grid;grid-template-columns:minmax(0,1fr);padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.side{display:none}
+.stage{display:flex;flex-direction:column;min-height:0;height:100%;padding:8px 6px 6px;gap:6px}
+
+/* 棋盤列：左搖台條｜卡匣｜右搖台條＋拉桿 */
+.board-row{flex:1;min-height:0;display:flex;align-items:stretch;gap:6px}
+.col{flex:none;width:36px;display:flex;flex-direction:column;align-items:center;position:relative}
+.board-wrap{flex:1;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;position:relative}
+.shake{width:100%;height:60%;margin:auto 0;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  background:linear-gradient(180deg,#e6ebf5,#aab3c6 50%,#7d879c);box-shadow:0 3px 0 #3d4556,inset 0 1px 0 #fff,inset 0 -2px 4px rgba(0,0,0,.25);color:#1b2233;font-weight:900;font-size:14px}
+.shake span{writing-mode:vertical-rl;letter-spacing:4px;font-size:12px}
+.shake small{font:7px var(--px);color:#3d4556}
+.shake:active{transform:translateY(2px);box-shadow:0 1px 0 #3d4556,inset 0 1px 0 #fff}
+.col.right .shake{margin:6% 0 auto}
+.lever{width:100%;height:30%;min-height:110px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;padding-bottom:4px;touch-action:none;user-select:none;-webkit-user-select:none}
+.lever .track{flex:1;width:14px;border-radius:8px;background:linear-gradient(90deg,#2b2110,#0b0a06 50%,#2b2110);box-shadow:inset 0 0 0 1px var(--gold3),0 0 10px rgba(232,200,114,.15);position:relative}
+.lever .knob{position:absolute;left:50%;top:0;width:30px;height:30px;margin-left:-15px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3c4,#e8c872 40%,#8d6a1a 100%);box-shadow:0 3px 0 var(--gold3),0 0 12px rgba(232,200,114,.35);transition:transform .05s linear}
+.lever.on .knob{box-shadow:0 1px 0 var(--gold3),0 0 18px rgba(255,230,150,.9)}
+.lever small{font:7px var(--px);color:var(--gold);letter-spacing:1px}
+
+/* GBC 卡匣 */
+.cart{display:flex;flex-direction:column;padding:0 10px 10px;border-radius:14px 14px 10px 10px;position:relative;
+  background:linear-gradient(160deg,#f6e2a0 0%,#d6b253 30%,#a67c23 65%,#e3c36c 100%);
+  box-shadow:0 0 0 2px var(--gold3),0 18px 40px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.55),inset 0 -2px 0 rgba(0,0,0,.25)}
+.cart::before{content:"";position:absolute;left:14px;right:14px;top:-2px;height:4px;border-radius:0 0 4px 4px;background:repeating-linear-gradient(90deg,var(--gold3) 0 3px,transparent 3px 7px);opacity:.5}
+.cart-top{height:46px;display:flex;align-items:center;gap:8px;padding:6px 0}
+.cart-label{flex:1;min-width:0;height:32px;border-radius:6px;background:linear-gradient(#0b2f28,#06201a);border:1px solid var(--gold3);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;box-shadow:inset 0 1px 4px rgba(0,0,0,.6)}
+.cart-label b{font-size:13px;color:var(--gold);letter-spacing:1px;white-space:nowrap}
+.cart-label small{font:7px var(--px);color:var(--silver);letter-spacing:2px}
+.rbtn{width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:15px;font-weight:900;color:#3a2a00;
+  background:radial-gradient(circle at 35% 30%,#fff3c4,#e8c872 40%,#9a7220 100%);box-shadow:0 2px 0 var(--gold3),inset 0 -2px 3px rgba(0,0,0,.25)}
+.rbtn:active{transform:translateY(1px);box-shadow:0 1px 0 var(--gold3)}
+.rbtn.on{background:radial-gradient(circle at 35% 30%,#fff,#cfd6e6 40%,#6b7589 100%)}
+.board-frame{position:relative;border-radius:8px;overflow:hidden;background:#06201a;box-shadow:inset 0 0 0 2px #2b2110,0 0 0 1px rgba(0,0,0,.6)}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+.grid-ov{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.13) 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,rgba(0,0,0,.09) 0 1px,transparent 1px 3px);mix-blend-mode:multiply}
+.toast{position:absolute;left:50%;top:40px;transform:translate(-50%,-8px);background:rgba(6,32,26,.9);border:1px solid var(--line);color:var(--txt);font-size:13px;font-weight:700;padding:6px 14px;border-radius:99px;white-space:nowrap;opacity:0;transition:.25s;pointer-events:none;max-width:92%;overflow:hidden;text-overflow:ellipsis}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.banner{position:absolute;left:50%;top:28%;width:min(92%,380px);transform:translate(-50%,-10px) scale(.92);opacity:0;transition:.3s cubic-bezier(.2,1.4,.4,1);pointer-events:none;display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:14px;background:rgba(6,32,26,.92);border:2px solid var(--gold2);box-shadow:0 0 30px rgba(232,200,114,.3)}
+.banner.show{opacity:1;transform:translate(-50%,0) scale(1)}
+.banner img{width:76px;height:76px;object-fit:contain}
+.banner img.sil{filter:brightness(0) drop-shadow(0 0 8px rgba(255,255,255,.8))}
+.banner .tag{display:inline-block;font-size:11px;font-weight:900;padding:1px 8px;border-radius:99px;background:var(--gold);color:#2a1d00}
+.banner b{display:block;font-size:24px;font-weight:900;line-height:1.25}
+.banner span.sub{font-size:12px;color:var(--mut)}
+.banner.shiny{border-color:var(--pink);box-shadow:0 0 30px rgba(255,79,163,.4)}
+.banner.shiny .tag{background:var(--pink);color:#fff}
+.bflash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+.bflash.go{animation:fl .7s ease-out}
+.pause-ov{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(6,32,26,.7);backdrop-filter:blur(3px)}
+.pause-ov.show{display:flex}
+.pause-ov b{font:16px var(--px);letter-spacing:2px;color:var(--gold)}
+.tiltmsg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-8deg);font:40px var(--px);color:var(--red);text-shadow:0 0 20px rgba(255,77,94,.8);display:none;pointer-events:none}
+.tiltmsg.show{display:block;animation:blink .4s infinite}
+@keyframes blink{50%{opacity:.4}}
+
+/* 寶可機 Pokégear 面板（棋盤下方） */
+.gear{flex:none;position:relative;display:flex;align-items:stretch;gap:8px;padding:10px 10px 8px;border-radius:14px;
+  background:linear-gradient(180deg,#123a30,#0b2f28 60%,#082620);border:2px solid var(--gold2);box-shadow:0 8px 24px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08)}
+.gear::before{content:"POKÉGEAR";position:absolute;right:12px;top:-8px;font:7px var(--px);color:#2a1d00;background:var(--gold);padding:2px 6px;border-radius:4px;letter-spacing:1px}
+.gear-left{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.gchips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.gchip{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:46px;border-radius:8px;background:rgba(0,0,0,.35);border:1px solid rgba(232,200,114,.18);box-shadow:inset 0 1px 3px rgba(0,0,0,.6);min-width:0;padding:2px}
+.gchip i{font-style:normal;font-size:13px;line-height:1;display:grid;place-items:center;height:14px}
+.gchip i img{width:14px;height:14px}
+.gchip b{font:11px var(--px);color:var(--silver);line-height:1;white-space:nowrap}
+.gchip b em{font:7px var(--px);font-style:normal;color:var(--mut)}
+.gchip small{font-size:9px;color:var(--mut);line-height:1;white-space:nowrap}
+.gchip.ammo b{color:var(--gold)}
+.gchip.ammo.low b{color:var(--red);animation:blink 1s infinite}
+.gchip.night{border-color:rgba(96,165,250,.4);background:rgba(10,26,74,.5)}
+.gchip.next b{font:700 11px "Noto Sans TC",sans-serif}
+.pw{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--mut);font-weight:700}
+.pwbar{flex:1;height:10px;border-radius:5px;background:rgba(0,0,0,.45);border:1px solid rgba(232,200,114,.25);overflow:hidden;position:relative}
+.pwbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#cfd6e6,#e8c872 60%,#ff9d4d);box-shadow:0 0 8px rgba(232,200,114,.6)}
+.pw b{font:9px var(--px);color:var(--gold);min-width:38px;text-align:right}
+.boxbtn{position:relative;width:118px;flex:none;border-radius:10px;background:linear-gradient(160deg,#f1d98f,#c9a24a 50%,#a67c23);color:#2a1d00;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 3px 0 var(--gold3),inset 0 1px 0 rgba(255,255,255,.6)}
+.boxbtn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--gold3)}
+.boxbtn .ringt{width:38px;height:38px;flex:none;position:relative}
+.boxbtn .ringt svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.boxbtn .ringt b{position:absolute;inset:0;display:grid;place-items:center;font:11px var(--px)}
+.boxbtn .lbl{text-align:center;line-height:1.15}
+.boxbtn .lbl b{display:block;font-size:12px;font-weight:900}
+.boxbtn .lbl small{font:7px var(--px)}
+.boxbtn.ready{animation:glow 1.4s infinite}
+@keyframes glow{50%{box-shadow:0 3px 0 var(--gold3),0 0 18px rgba(255,230,150,.9)}}
+.tiltbar{position:absolute;left:12px;right:12px;top:-2px;height:3px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+.tiltbar i{display:block;height:100%;width:0;background:var(--silver);transition:width .1s}
+.tiltbar i.hot{background:var(--red)}
+
+/* 側欄（桌機）：上金下銀 */
+.panel{border-radius:12px;padding:14px;position:relative}
+.panel h3{margin:0 0 10px;font-size:12px;font-weight:900;letter-spacing:2px}
+.panel.gold{background:linear-gradient(160deg,#f1d98f,#cfa94e 40%,#b08a2c);color:#2a1d00;box-shadow:0 0 0 2px var(--gold3),inset 0 1px 0 rgba(255,255,255,.6)}
+.panel.gold h3{color:#5a3f0a}
+.panel.silver{background:linear-gradient(160deg,#eef1f7,#c3cad8 40%,#9aa3b6);color:#1b2233;box-shadow:0 0 0 2px #3d4556,inset 0 1px 0 #fff}
+.panel.silver h3{color:#3d4556}
+.panel .mut{opacity:.7}
+.prog{display:grid;grid-template-columns:1fr auto;gap:4px 8px;font-size:12px;margin-bottom:10px;font-weight:700}
+.prog .bar{grid-column:1/-1;height:7px;border-radius:6px;background:rgba(0,0,0,.25);overflow:hidden}
+.prog .bar i{display:block;height:100%;width:0;border-radius:6px;transition:width .8s}
+.prog .num{font:9px var(--px)}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px;font-size:12px;font-weight:700}
+.kv b{font:10px var(--px);text-align:right}
+.recent{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.recent .rc-mini{aspect-ratio:1;border-radius:8px;background:rgba(0,0,0,.18);display:grid;place-items:center;position:relative}
+.recent img{width:86%;height:86%;object-fit:contain}
+.recent .rc-mini.shiny{box-shadow:inset 0 0 0 2px var(--pink)}
+.keys{font-size:12px;line-height:1.9;margin:0;padding:0;list-style:none}
+.keys kbd{font:7px var(--px);background:rgba(0,0,0,.2);border-radius:4px;padding:3px 5px}
+.rules{font-size:12px;line-height:1.75;margin:0;padding-left:16px}
+.side-btn{background:rgba(0,0,0,.2);border-radius:10px;padding:10px;font-weight:900;font-size:13px;width:100%;margin-top:8px}
+@media (min-width:1000px){
+  #app{grid-template-columns:240px minmax(0,660px) 240px;justify-content:center;gap:20px;padding:16px}
+  .side{display:flex;flex-direction:column;gap:14px;min-height:0;overflow:hidden}
+  .stage{padding:0}
+  .col{width:44px}
+}
+
+/* 抽屜 */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:.25s;z-index:30}
+.scrim.show{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:min(86vw,320px);background:linear-gradient(180deg,#0f3a30,#06201a);border-right:2px solid var(--gold2);transform:translateX(-100%);transition:transform .3s cubic-bezier(.2,.9,.3,1);z-index:31;display:flex;flex-direction:column;padding:calc(14px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom))}
+.drawer.show{transform:none}
+.dr-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.dr-head b{font-size:18px;font-weight:900;color:var(--gold)}
+.dr-body{flex:1;overflow:auto;display:flex;flex-direction:column;gap:12px;padding-right:2px}
+.dr-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dr-btns button{background:var(--glass2);border:1px solid var(--line);border-radius:10px;padding:12px 8px;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px}
+.dr-btns button.wide{grid-column:1/-1;background:linear-gradient(160deg,#f1d98f,#c9a24a);color:#2a1d00}
+.card{background:var(--glass);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.card h3{margin:0 0 8px;font-size:13px;color:var(--gold);font-weight:900;letter-spacing:1px}
+.toggle{display:flex;align-items:center;justify-content:space-between;padding:8px 2px;font-size:14px;font-weight:700}
+.sw{width:46px;height:26px;border-radius:99px;background:rgba(255,255,255,.15);position:relative;transition:.2s}
+.sw::after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+.sw.on{background:var(--gold)}
+.sw.on::after{left:23px;background:#3a2a00}
+details.debug{background:rgba(0,0,0,.2);border-radius:12px;padding:8px 12px;font-size:13px}
+details.debug summary{cursor:pointer;font-weight:700;color:var(--mut)}
+details.debug .row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+details.debug button{background:var(--glass2);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700}
+details.debug button.on{background:rgba(232,200,114,.4)}
+.gift-card button{background:linear-gradient(135deg,rgba(255,77,94,.25),rgba(232,200,114,.2))}
+
+/* 精靈球／蛋 CSS */
+.pb{--top:var(--red);width:18px;height:18px;border-radius:50%;flex:none;position:relative;background:linear-gradient(var(--top) 0 44%,#0b0f24 44% 56%,#f4f6ff 56%);box-shadow:0 0 0 2px #0b0f24}
+.pb::after{content:"";position:absolute;inset:33%;border-radius:50%;background:#f4f6ff;box-shadow:0 0 0 2px #0b0f24}
+.pb.great{--top:#3b82f6}.pb.ultra{--top:#2a2a2a}.pb.master{--top:#8b5cf6}
+.pb.great::before{content:"";position:absolute;left:8%;right:8%;top:10%;height:30%;border-left:3px solid var(--red);border-right:3px solid var(--red);border-radius:50% 50% 0 0}
+.pb.ultra::before{content:"";position:absolute;left:24%;right:24%;top:5%;height:38%;border-left:3px solid var(--gold);border-right:3px solid var(--gold)}
+.pb.master::before{content:"M";position:absolute;left:0;right:0;top:2%;text-align:center;color:#fff;font:800 .4em/1.4 var(--num)}
+.pb.egg{border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:
+  radial-gradient(circle at 30% 35%,#5fb37a 0 12%,transparent 13%),radial-gradient(circle at 68% 55%,#5fb37a 0 11%,transparent 12%),radial-gradient(circle at 45% 75%,#5fb37a 0 9%,transparent 10%),
+  radial-gradient(circle at 35% 25%,#ffffff,#eef5e8 55%,#c9d8c2);box-shadow:0 0 0 2px #3b5a3a;height:22px}
+.pb.egg::after,.pb.egg::before{display:none}
+
+/* 彈窗共用 */
+.modal{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;background:rgba(3,14,11,.85);backdrop-filter:blur(6px);padding:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom))}
+.modal.show{display:flex}
+.sheet{width:100%;max-width:760px;height:100%;max-height:820px;display:flex;flex-direction:column;background:linear-gradient(160deg,rgba(18,58,48,.97),rgba(6,32,26,.97));border:2px solid var(--gold2);border-radius:16px;padding:14px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.sheet-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex:none}
+.sheet-head .tagc{font-size:11px;font-weight:900;padding:2px 10px;border-radius:99px;background:var(--gold);color:#2a1d00}
+.sheet-head h2{margin:0;font-size:19px;font-weight:900;color:var(--gold)}
+.sheet-head .right{margin-left:auto;font:9px var(--px);color:var(--mut)}
+.sheet-body{flex:1;min-height:0;position:relative}
+.sheet-foot{flex:none;display:flex;align-items:center;gap:10px;margin-top:12px}
+.sheet-foot .note{font-size:12px;color:var(--mut);margin-right:auto}
+.btn{border-radius:10px;padding:11px 20px;font-weight:900;font-size:15px;white-space:nowrap}
+.btn.primary{background:linear-gradient(135deg,#f1d98f,#c9a24a);color:#2a1d00;box-shadow:0 3px 0 var(--gold3)}
+.btn.ghost{background:var(--glass2);border:1px solid var(--line)}
+.btn:disabled{opacity:.4}
+
+/* 開箱卡片 */
+.rgrid{display:grid;gap:8px;justify-content:center;align-content:center;height:100%;overflow:auto}
+.rc{position:relative;border-radius:12px;background:rgba(0,0,0,.25);border:1px solid var(--line);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px}
+.rc .no{position:absolute;left:7px;top:5px;font:7px var(--px);color:var(--mut)}
+.rc img{width:68%;aspect-ratio:1;object-fit:contain}
+.rc .nm{font-size:13px;font-weight:900;margin-top:2px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.rc .badges{position:absolute;right:5px;top:5px;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.badge{font:7px/15px var(--px);padding:0 6px;border-radius:6px;background:var(--red);color:#fff}
+.badge.t{font-family:"Noto Sans TC";font-weight:900;font-size:9px}
+.badge.shiny{background:linear-gradient(90deg,#ff5f9e,#ffb340,#4aa8ff)}
+.badge.rare{background:var(--blue)}.badge.srare{background:#f59e0b}.badge.legend{background:var(--violet)}
+.badge.egg{background:#5fb37a;color:#fff}
+.rc .ballw{position:absolute;inset:0;display:grid;place-items:center;background:radial-gradient(circle,rgba(255,255,255,.08),transparent 70%);transition:.25s}
+.rc .ballw .pb{width:44%;height:auto;aspect-ratio:1;animation:wob .6s infinite}
+.rc .ballw .pb.egg{aspect-ratio:.85}
+.rc .ballw .pb::after{box-shadow:0 0 0 3px #0b0f24}
+.rc .ballw .pb.great::before,.rc .ballw .pb.ultra::before{border-width:0 6px}
+.rc .ballw .pb.master::before{font-size:16px}
+@keyframes wob{0%,100%{transform:rotate(0)}25%{transform:rotate(-14deg)}75%{transform:rotate(14deg)}}
+.rc.ball .no,.rc.ball img,.rc.ball .nm,.rc.ball .badges{visibility:hidden}
+.rc:not(.ball) .ballw{opacity:0;transform:scale(1.8);pointer-events:none}
+.rc.sil img{filter:brightness(0) drop-shadow(0 0 6px rgba(255,255,255,.65))}
+.rc.sil .badges,.rc.sil .no{visibility:hidden}
+.rc.sil.hot{animation:pulse .5s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 2px var(--gold),0 0 22px rgba(232,200,114,.6)}}
+.rc.show{animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+.rc.show::after{content:"";position:absolute;inset:0;background:#fff;animation:wf .45s forwards;pointer-events:none}
+@keyframes pop{0%{transform:scale(.85)}60%{transform:scale(1.06)}100%{transform:none}}
+@keyframes wf{0%{opacity:.95}100%{opacity:0}}
+.rc.show.rare{border-color:rgba(96,165,250,.7);background:linear-gradient(rgba(96,165,250,.18),rgba(255,255,255,.03))}
+.rc.show.srare{border-color:rgba(251,191,36,.8);background:linear-gradient(rgba(251,191,36,.2),rgba(255,255,255,.03))}
+.rc.show.legend{border-color:rgba(167,139,250,.9);background:linear-gradient(rgba(167,139,250,.28),rgba(232,200,114,.08))}
+.rc.show.isshiny{box-shadow:0 0 0 2px var(--pink),0 0 16px rgba(255,79,163,.5)}
+
+/* 聚光燈揭曉 */
+.spot{position:fixed;inset:0;z-index:45;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:radial-gradient(circle at 50% 45%,rgba(20,70,56,.96),rgba(3,14,11,.98) 65%);overflow:hidden;cursor:pointer}
+.spot.show{display:flex}
+.spot .rays{position:absolute;left:50%;top:45%;width:170vmax;height:170vmax;transform:translate(-50%,-50%);background:repeating-conic-gradient(var(--ray,rgba(255,255,255,.07)) 0 8deg,transparent 8deg 20deg);border-radius:50%;animation:spin 14s linear infinite;-webkit-mask:radial-gradient(circle,#000 10%,transparent 60%);mask:radial-gradient(circle,#000 10%,transparent 60%)}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.spot .hint{position:relative;font-size:clamp(20px,5vw,30px);font-weight:900;letter-spacing:3px;color:var(--hint,#fff);text-shadow:0 0 18px currentColor;animation:blink .5s infinite}
+.spot img{position:relative;width:min(62vw,300px);aspect-ratio:1;object-fit:contain;filter:brightness(0) drop-shadow(0 0 14px rgba(255,255,255,.85));animation:breath 0.35s infinite alternate}
+.spot.egg img{filter:drop-shadow(0 10px 20px rgba(0,0,0,.5));animation:wob .5s infinite}
+@keyframes breath{to{transform:scale(1.04)}}
+.spot .name{position:relative;font-size:clamp(30px,8vw,46px);font-weight:900;letter-spacing:2px}
+.spot .meta{position:relative;display:flex;gap:6px;align-items:center;min-height:20px;font:9px var(--px);color:var(--mut)}
+.spot .tap{position:absolute;bottom:calc(24px + env(safe-area-inset-bottom));font-size:12px;color:var(--mut);opacity:0}
+.spot.revealed img{filter:drop-shadow(0 10px 20px rgba(0,0,0,.5));animation:popin .6s cubic-bezier(.2,1.6,.4,1)}
+.spot.revealed .hint{animation:none}
+.spot.revealed .tap{opacity:1;transition:opacity .4s 1s}
+.spot.revealed .name{animation:popin .5s cubic-bezier(.2,1.6,.4,1)}
+.spot.shiny.revealed .name{background:linear-gradient(90deg,#ff5f9e,#ffb340,#6ee7b7,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
+@keyframes popin{0%{transform:scale(.4);opacity:0}100%{transform:none;opacity:1}}
+.flash{position:fixed;inset:0;z-index:50;pointer-events:none;opacity:0;background:#fff}
+.flash.go{animation:fl .75s ease-out}
+.flash.rainbow{background:radial-gradient(circle,#fff 20%,#ffe9a8 45%,#ffb3e1 70%,#b8e4ff)}
+@keyframes fl{0%{opacity:0}12%{opacity:1}100%{opacity:0}}
+
+/* 圖鑑更新頁 */
+.upd{height:100%;overflow:auto;display:flex;flex-direction:column;gap:14px}
+.upd h4{margin:0 0 8px;font-size:13px;color:var(--gold);letter-spacing:1px}
+.upd .prog{margin:0}
+.plus{font:8px var(--px);color:#2a1d00;background:var(--gold);border-radius:6px;padding:2px 6px;margin-left:4px}
+.evos{display:flex;flex-wrap:wrap;gap:8px}
+.evo{display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.25);border-radius:12px;padding:4px 10px 4px 4px;font-size:12px;font-weight:700}
+.evo img{width:40px;height:40px;object-fit:contain}
+.evo .ar{color:var(--gold)}
+.news{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px}
+.news div{background:rgba(0,0,0,.25);border-radius:10px;text-align:center;padding:4px 2px;font-size:10px;font-weight:700;position:relative}
+.news img{width:100%;aspect-ratio:1;object-fit:contain}
+.empty{color:var(--mut);font-size:13px;text-align:center;padding:10px}
+
+/* 圖鑑 */
+.dex-top{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-bottom:10px;font-size:12px;color:var(--mut)}
+.dex-top b{font:11px var(--px);color:var(--gold)}
+.tabs{display:flex;gap:6px;margin-left:auto}
+.tabs button{border-radius:99px;padding:5px 12px;background:var(--glass2);font-size:12px;font-weight:700}
+.tabs button.on{background:var(--gold);color:#2a1d00}
+.dexgrid{display:grid;gap:6px;height:100%}
+.dcell{border-radius:10px;background:rgba(0,0,0,.25);border:1px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;min-height:0;overflow:hidden;cursor:pointer}
+.dcell img{height:62%;aspect-ratio:1;object-fit:contain}
+.dcell.miss img{filter:brightness(0);opacity:.35}
+.dcell .n{position:absolute;left:6px;top:4px;font:6px var(--px);color:var(--mut)}
+.dcell .c{position:absolute;right:6px;top:4px;font:7px var(--px);color:var(--gold)}
+.dcell .nm{font-size:11px;font-weight:700;white-space:nowrap;max-width:94%;overflow:hidden;text-overflow:ellipsis}
+.dcell.sh{border-color:rgba(255,79,163,.6);background:linear-gradient(rgba(255,79,163,.15),rgba(255,255,255,.03))}
+.dcell .st{position:absolute;right:6px;bottom:4px;font-size:10px}
+.pager{display:flex;align-items:center;gap:10px}
+.pager button{width:40px;height:40px;border-radius:10px;background:var(--glass2);font-size:20px;font-weight:900}
+.pager span{font:9px var(--px);min-width:56px;text-align:center}
+
+/* 統計 */
+.stbody{display:flex;flex-direction:column;gap:10px;overflow:auto}
+.stgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:5px}
+.stile{background:rgba(0,0,0,.25);border-radius:10px;padding:5px 8px;min-width:0}
+.stile small{display:block;font-size:10px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stile b{font:11px var(--px);color:var(--silver)}
+.stile em{font:7px var(--px);color:var(--gold);font-style:normal;margin-left:3px}
+.strow{display:flex;gap:6px;flex-wrap:wrap}
+.strow .chipb{display:flex;align-items:center;gap:5px;background:rgba(0,0,0,.25);border-radius:10px;padding:4px 10px;font-size:12px;font-weight:700}
+.strow .chipb b{font:10px var(--px);color:var(--gold)}
+.strow .chipb img{width:22px;height:22px}
+.sttop{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.sttop div{background:rgba(0,0,0,.25);border-radius:12px;text-align:center;padding:4px 2px 6px;position:relative;font-size:11px;font-weight:700}
+.sttop div:first-child{background:linear-gradient(rgba(232,200,114,.25),rgba(0,0,0,.2));box-shadow:inset 0 0 0 1.5px rgba(232,200,114,.6)}
+.sttop img{width:100%;aspect-ratio:1;object-fit:contain}
+.sttop i{position:absolute;left:6px;top:4px;font:8px var(--px);font-style:normal;color:var(--gold)}
+.stsec h4{margin:0 0 6px;font-size:12px;color:var(--gold);letter-spacing:1px}
+@media (max-width:520px){.stbody{gap:8px}}
+
+/* 結算 */
+.sum{max-width:420px;height:auto;max-height:100%}
+.sum .best{display:flex;flex-direction:column;align-items:center;padding:6px 0 12px}
+.sum .best img{width:min(46vw,170px);aspect-ratio:1;object-fit:contain;filter:drop-shadow(0 8px 18px rgba(0,0,0,.5))}
+.sum .best b{font-size:22px;font-weight:900}
+.sum .best small{color:var(--mut);font-size:12px}
+.sum .grid4{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sum .grid4 div{background:rgba(0,0,0,.25);border-radius:12px;padding:10px;text-align:center}
+.sum .grid4 small{display:block;color:var(--mut);font-size:11px}
+.sum .grid4 b{font:16px var(--px);color:var(--gold)}
+
+@media (hover:none){.shake small{display:none}}
+@media (max-width:520px){#mDex .sheet-foot .note{display:none}#mDex .pager{margin-right:auto}}
+@media (max-width:420px){
+  .boxbtn{width:92px}
+  .gchip small{display:none}
+  .gchip{height:40px}
+}
+@media (prefers-reduced-motion:reduce){.spot .rays,.rc .ballw .pb{animation:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside class="side">
+    <section class="panel gold">
+      <h3>收集進度</h3>
+      <div class="prog"><span>城都圖鑑</span><span class="num"><span data-k="dex">0</span>/251</span><div class="bar"><i data-bar="dex" style="background:linear-gradient(90deg,#2d8a5e,#06201a)"></i></div></div>
+      <div class="prog"><span>閃光</span><span class="num"><span data-k="shiny">0</span>/251</span><div class="bar"><i data-bar="shiny" style="background:linear-gradient(90deg,#ff5f9e,#b8902e)"></i></div></div>
+      <div class="prog"><span>傳說</span><span class="num"><span data-k="legend">0</span>/6</span><div class="bar"><i data-bar="legend" style="background:linear-gradient(90deg,#a78bfa,#3a2a00)"></i></div></div>
+      <div class="kv" style="margin-top:4px"><span>剩餘彈珠</span><b data-k="balls">100</b><span>已發射</span><b data-k="shots">0</b><span>捕獲</span><b data-k="caught">0</b><span>新登錄</span><b data-k="newdex">0</b></div>
+    </section>
+    <section class="panel silver">
+      <h3>最近捕獲</h3>
+      <div class="recent" data-recent></div>
+    </section>
+  </aside>
+
+  <main class="stage">
+    <div class="board-row">
+      <div class="col left"><button class="shake" id="shakeL">◀<span>搖台</span><small>Z</small></button></div>
+      <div class="board-wrap" id="boardWrap">
+        <div class="cart">
+          <div class="cart-top">
+            <button class="rbtn" id="btnMenu" aria-label="選單">☰</button>
+            <div class="cart-label"><b>城都彈珠研究所</b><small id="brandSub">JOHTO · 251</small></div>
+            <button class="rbtn" id="btnPause" aria-label="暫停">⏸</button>
+          </div>
+          <div class="board-frame" id="boardFrame">
+            <canvas id="cv"></canvas>
+            <div class="grid-ov"></div>
+            <div class="toast" id="toast"></div>
+            <div class="banner" id="banner"><img alt=""><div><span class="tag"></span><b></b><span class="sub"></span></div></div>
+            <div class="bflash" id="bflash"></div>
+            <div class="tiltmsg" id="tiltMsg">TILT</div>
+            <div class="pause-ov" id="pauseOv"><b>PAUSE</b><button class="btn primary" id="btnResume">▶ 繼續</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="col right">
+        <button class="shake" id="shakeR">▶<span>搖台</span><small>X</small></button>
+        <button class="lever" id="lever" aria-label="拉桿：按住蓄力，放開發射"><span class="track"><i class="knob" id="leverKnob"></i></span><small>PULL</small></button>
+      </div>
+    </div>
+
+    <footer class="gear">
+      <div class="tiltbar"><i id="tiltBar"></i></div>
+      <div class="gear-left">
+        <div class="gchips">
+          <div class="gchip" id="clkChip"><i id="clkIcon">☀️</i><b id="clkNum">60</b><small id="clkLbl">白天</small></div>
+          <div class="gchip ammo" id="ammoChip"><i>🔘</i><b data-k="balls">100</b><small>彈珠</small></div>
+          <div class="gchip"><i>📗</i><b><span data-k="dex">0</span><em>/251</em></b><small>圖鑑</small></div>
+          <div class="gchip next"><i><img id="nextImg" alt=""></i><b id="nextName">鋼珠</b><small>下一顆</small></div>
+        </div>
+        <div class="pw"><span>力道</span><div class="pwbar"><i id="pwBar"></i></div><b id="pwNum">0%</b></div>
+      </div>
+      <button class="boxbtn" id="btnBox" aria-label="開箱">
+        <span class="ringt"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="4"/><circle id="boxRing" cx="20" cy="20" r="17" fill="none" stroke="#06201a" stroke-width="4" stroke-linecap="round" stroke-dasharray="106.8" stroke-dashoffset="106.8"/></svg><b id="boxCnt">0</b></span>
+        <span class="lbl"><b>收集倉</b><small id="boxTime">開箱 30s</small></span>
+      </button>
+    </footer>
+  </main>
+
+  <aside class="side">
+    <section class="panel gold">
+      <h3>規則</h3>
+      <ul class="rules">
+        <li>一局 100 顆彈珠；拉桿蓄力放開發射，按住 1.1 秒自動連發</li>
+        <li>每 7 顆一顆金珠（重，進口 ×2）、每 5 顆一顆銀珠（輕，計數 ×2）</li>
+        <li>每 60 秒日夜交替，夜晚稀有機率 ×1.6</li>
+        <li>白天打太陽、夜晚打月亮：滿 20 送 +5 珠／滿 40 送超級球</li>
+        <li>進啟動口＝輪盤轉一次（保留 4）</li>
+        <li>輪盤：彈珠、球、蛋、閃光、大獎（3 隻同種＋大入賞口）</li>
+        <li>蛋在開箱時孵出寶寶寶可夢</li>
+        <li>3 隻相同自動進化</li>
+      </ul>
+    </section>
+    <section class="panel silver">
+      <h3>操作</h3>
+      <ul class="keys">
+        <li>拉桿：按住蓄力、放開發射</li>
+        <li><kbd>Space</kbd> 蓄力／放開發射</li>
+        <li><kbd>Z</kbd> <kbd>X</kbd> 左右搖台（搖太多會 TILT）</li>
+        <li><kbd>P</kbd> 暫停　<kbd>B</kbd> 開箱　<kbd>D</kbd> 圖鑑　<kbd>S</kbd> 統計</li>
+      </ul>
+      <button class="side-btn" id="sideStats">📊 數據統計</button>
+    </section>
+  </aside>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<nav class="drawer" id="drawer" aria-label="選單">
+  <div class="dr-head"><b>選單</b><button class="rbtn" id="drClose" aria-label="關閉">✕</button></div>
+  <div class="dr-body">
+    <div class="dr-btns">
+      <button id="drPause">⏸ 暫停</button>
+      <button id="drDex">📗 圖鑑</button>
+      <button id="drBox">🎁 立即開箱</button>
+      <button id="drNew">🔄 重開一局</button>
+      <button id="drStats">📊 數據統計</button>
+      <button id="drLobby" class="wide">🏠 回大廳（換世代）</button>
+    </div>
+    <div class="card gift-card">
+      <h3>🎁 禮物</h3>
+      <div class="dr-btns">
+        <button id="giftBalls">🔘 送 100 顆彈珠</button>
+        <button id="giftPoke">✨ 立刻得到稀有寶可夢</button>
+      </div>
+    </div>
+    <div class="card" style="padding:8px 14px">
+      <div class="toggle"><span>🎵 背景音樂</span><button class="sw" id="swMusic" aria-label="背景音樂"></button></div>
+      <div class="toggle"><span>🔔 音效</span><button class="sw" id="swSfx" aria-label="音效"></button></div>
+    </div>
+    <div class="card">
+      <h3>收集進度</h3>
+      <div class="prog"><span>城都圖鑑</span><span class="num"><span data-k="dex">0</span>/251</span><div class="bar"><i data-bar="dex" style="background:linear-gradient(90deg,#5ef2ff,#2d8a5e)"></i></div></div>
+      <div class="prog"><span>閃光</span><span class="num"><span data-k="shiny">0</span>/251</span><div class="bar"><i data-bar="shiny" style="background:linear-gradient(90deg,#ff5f9e,#e8c872)"></i></div></div>
+      <div class="prog"><span>傳說</span><span class="num"><span data-k="legend">0</span>/6</span><div class="bar"><i data-bar="legend" style="background:linear-gradient(90deg,#a78bfa,#ff4fa3)"></i></div></div>
+      <div class="kv" style="margin-top:6px"><span>本局捕獲</span><b data-k="caught">0</b><span>本局新登錄</span><b data-k="newdex">0</b></div>
+    </div>
+    <div class="card">
+      <h3>玩法</h3>
+      <ul class="rules">
+        <li>一局 100 顆彈珠。右下角拉桿按住蓄力（力道條來回跑），放開就從右側軌道射出；力道越強飛越遠（落在左邊），越弱落在右邊</li>
+        <li>按住拉桿超過 1.1 秒會以當時力道自動連發 10 顆；左右搖台能推動彈珠，搖太兇會 TILT 鎖台</li>
+        <li>三種珠：鋼珠普通；每 7 顆出一顆金珠（重、不受搖台影響、進入口或啟動口算 2 次）；每 5 顆出一顆銀珠（輕、搖台推得動、碰計數器算 2 次）</li>
+        <li>每 60 秒日夜交替。白天打「太陽」才算數、夜晚打「月亮」才算數；滿 20 送 +5 珠、滿 40 送超級球。夜晚稀有以上機率 ×1.6</li>
+        <li>落進中央輪盤下方的「啟動口」，輪盤轉一次（最多保留 4 次）：彈珠 +5／+10／+20、超級球、高級球、蛋、閃光、大獎</li>
+        <li>大獎：三隻同一隻稀有寶可夢進收集倉（開箱直接進化）、+15 珠、大入賞口打開 12 秒</li>
+        <li>蛋會在開箱時孵出本世代的寶寶寶可夢，1/20 閃光</li>
+        <li>左口袋：洛奇亞→鳳王→時拉比輪流；右口袋：三聖獸每 20 秒換一隻徘徊。落空會充能，滿了必定收服</li>
+      </ul>
+    </div>
+    <details class="debug">
+      <summary>🧪 測試工具</summary>
+      <div class="row">
+        <button id="dbBalls">+100 彈珠</button>
+        <button id="dbBox">收集倉 +10</button>
+        <button id="dbSpeed">速度 ×1</button>
+        <button id="dbAuto">自動發射：關</button>
+        <button id="dbLegend">傳說充能 +50%</button>
+        <button id="dbNight">切換日夜</button>
+        <button id="dbWheel">輪盤轉一次</button>
+        <button id="dbReset">清除存檔</button>
+      </div>
+    </details>
+  </div>
+</nav>
+
+<div class="modal" id="mReveal">
+  <div class="sheet">
+    <div class="sheet-head"><span class="tagc" id="rvTag">開箱</span><h2 id="rvTitle"></h2><span class="right" id="rvRight"></span></div>
+    <div class="sheet-body" id="rvBody"></div>
+    <div class="sheet-foot"><span class="note" id="rvNote"></span><button class="btn ghost" id="rvSkip">跳過動畫</button><button class="btn primary" id="rvNext" disabled>下一步</button></div>
+  </div>
+</div>
+<div class="spot" id="spot"><div class="rays"></div><div class="hint" id="spHint"></div><img id="spImg" alt=""><div class="name" id="spName">？？？</div><div class="meta" id="spMeta"></div><div class="tap">點一下繼續</div></div>
+<div class="flash" id="flash"></div>
+
+<div class="modal" id="mDex">
+  <div class="sheet">
+    <div class="sheet-head"><span class="tagc">圖鑑</span><h2>城都寶可夢圖鑑</h2><span class="right"><span data-k="dex">0</span> / 251</span></div>
+    <div class="dex-top" id="dxTop"></div>
+    <div class="sheet-body"><div class="dexgrid" id="dxGrid"></div></div>
+    <div class="sheet-foot"><span class="note">點閃光寶可夢可切換閃光圖・左右滑動換頁</span><div class="pager"><button id="dxPrev" aria-label="上一頁">‹</button><span id="dxPage">1/1</span><button id="dxNext" aria-label="下一頁">›</button></div><button class="btn primary" id="dxClose">關閉</button></div>
+  </div>
+</div>
+
+<div class="modal" id="mStats">
+  <div class="sheet">
+    <div class="sheet-head"><span class="tagc">統計</span><h2>數據統計</h2><span class="right" id="stRight">JOHTO</span></div>
+    <div class="sheet-body stbody" id="stBody"></div>
+    <div class="sheet-foot"><span class="note">累計數據</span><button class="btn primary" id="stClose">關閉</button></div>
+  </div>
+</div>
+
+<div class="modal" id="mSum">
+  <div class="sheet sum">
+    <div class="sheet-head"><span class="tagc">結算</span><h2 id="sumHead">本局結束</h2><span class="right" id="sumRight"></span></div>
+    <div class="best" id="sumBest"></div>
+    <div class="grid4" id="sumGrid"></div>
+    <div class="sheet-foot"><button class="btn ghost" id="sumDex">看圖鑑</button><button class="btn primary" id="sumAgain" style="margin-left:auto">再來一局（100 顆）</button></div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
