@@ -124,8 +124,8 @@ footer{font-size:11px;color:var(--mut);line-height:1.7;text-align:center;opacity
 .tabs::-webkit-scrollbar{display:none}
 .tabs button{flex:none;padding:7px 12px;border-radius:99px;background:var(--glass);border:1px solid var(--line);font-size:12px;font-weight:800;white-space:nowrap}
 .tabs button.on{background:var(--gold);color:#141b3f;border-color:var(--gold)}
-.dexgrid{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;padding:4px 2px;align-content:start}
-.dcell{aspect-ratio:1;border-radius:12px;background:rgba(255,255,255,.05);display:grid;place-items:center;position:relative;overflow:hidden}
+.dexgrid{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));grid-auto-rows:max-content;gap:6px;padding:4px 2px;align-content:start;align-items:start}
+.dcell{width:100%;aspect-ratio:1;border-radius:12px;background:rgba(255,255,255,.05);display:grid;place-items:center;position:relative;overflow:hidden}
 .dcell img{width:84%;height:84%;object-fit:contain}
 .dcell.miss img{filter:brightness(0);opacity:.25}
 .dcell.sh{box-shadow:inset 0 0 0 1.5px var(--gold)}

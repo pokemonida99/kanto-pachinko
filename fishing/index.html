@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#2b2f5c">
+<title>寶可夢釣魚台 · 全國水系</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#fbefdc; --paper2:#f3dfc2; --ink:#3a2c3f; --soft:#7a6470; --wood:#8a5a3b; --wood2:#6b4129;
+  --accent:#ff7f57; --accent2:#ffb36b; --teal:#2f8f9d; --line:rgba(58,44,63,.16);
+  --c-common:#7fa8a8; --c-rare:#4f8de0; --c-srare:#f0a92b; --c-legend:#9b6bff;
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+}
+body.night{
+  --paper:#18213f; --paper2:#212c52; --ink:#eef0ff; --soft:#a6abd0; --wood:#4a3324; --wood2:#33221a;
+  --accent:#ffc66d; --accent2:#ffdf9e; --teal:#62d4e3; --line:rgba(230,235,255,.14);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#1b1d3a;color:var(--ink);
+  font-family:'Noto Sans TC',system-ui,-apple-system,'PingFang TC',sans-serif;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+.num{font-family:'Caveat','Patrick Hand',cursive;font-weight:700;letter-spacing:.5px}
+
+#app{position:fixed;inset:0;display:flex;flex-direction:column}
+#seaWrap{position:relative;flex:1;min-height:0;overflow:hidden;touch-action:none;cursor:pointer}
+#sea{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+/* ---------- 海面上的 HUD ---------- */
+#hud{position:absolute;left:0;right:0;top:0;padding:calc(10px + var(--sat)) 12px 0;display:flex;gap:8px;align-items:flex-start;pointer-events:none}
+#hud > *{pointer-events:auto}
+.chip{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:17px;
+  background:rgba(20,18,40,.38);color:#fff;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);font-size:13px;font-weight:700;white-space:nowrap}
+.chip .num{font-size:21px;line-height:1}
+.ibtn{width:34px;height:34px;border-radius:17px;justify-content:center;padding:0;font-size:16px}
+.ibtn.off{opacity:.45}
+#hud .grow{flex:1}
+#clock{font-size:12px;opacity:.9}
+#baitChip{display:none;background:rgba(124,70,220,.75)}
+#baitChip.show{display:inline-flex;animation:wob 1.6s ease-in-out infinite}
+@keyframes wob{50%{transform:translateY(-2px) rotate(-2deg)}}
+
+#hint{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);padding:7px 14px;border-radius:14px;background:rgba(20,18,40,.42);
+  color:#fff;font-size:13px;white-space:nowrap;pointer-events:none;transition:opacity .6s}
+#hint.hide{opacity:0}
+
+/* ---------- 一般捕獲的小卡（不擋畫面） ---------- */
+#minis{position:absolute;right:12px;top:calc(54px + var(--sat));display:flex;flex-direction:column;gap:6px;align-items:flex-end;pointer-events:none}
+.mini{display:flex;align-items:center;gap:6px;padding:4px 12px 4px 4px;border-radius:12px;background:rgba(255,248,236,.92);color:#3a2c3f;
+  box-shadow:0 4px 14px rgba(0,0,0,.25);font-size:13px;font-weight:700;animation:miniIn .35s cubic-bezier(.2,1.4,.5,1) both}
+.mini img{width:40px;height:40px;object-fit:contain;image-rendering:auto}
+.mini .num{font-size:17px;color:#8a6a5a;margin-right:2px}
+.mini.out{animation:miniOut .4s ease-in forwards}
+@keyframes miniIn{from{transform:translateX(120%);opacity:0}}
+@keyframes miniOut{to{transform:translateX(120%);opacity:0}}
+
+/* ---------- 揭曉卡（拍立得） ---------- */
+.reveal{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,8,30,.0);pointer-events:none;transition:background .3s;z-index:5}
+.reveal.show{pointer-events:auto;background:rgba(10,8,30,.45)}
+.rv-card{position:relative;width:min(270px,74vw);padding:14px 14px 16px;background:#fffaf1;color:#3a2c3f;border-radius:6px;
+  box-shadow:0 18px 50px rgba(0,0,0,.45);transform:translateY(40px) rotate(-4deg) scale(.6);opacity:0;transition:transform .45s cubic-bezier(.2,1.5,.5,1),opacity .25s;text-align:center}
+.reveal.show .rv-card{transform:rotate(-2deg);opacity:1}
+.rv-tape{position:absolute;top:-12px;left:50%;width:96px;height:26px;margin-left:-48px;background:rgba(255,214,140,.75);transform:rotate(3deg);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.rv-photo{position:relative;aspect-ratio:1/1;border-radius:3px;overflow:hidden;background:linear-gradient(#ffd8a8,#ff9f87 45%,#5a6aa8 46%,#2d3d72)}
+.night .rv-photo{background:linear-gradient(#1b2350,#2c3a6e 45%,#0c1838 46%,#060d22)}
+.rv-photo img{position:absolute;inset:6%;width:88%;height:88%;object-fit:contain;filter:drop-shadow(0 6px 6px rgba(0,0,0,.35));transition:filter .3s}
+.rv-photo .sp{position:absolute;inset:0;pointer-events:none}
+.rv-no{margin-top:8px;font-size:26px;line-height:1;color:#a67c62}
+.rv-name{font-size:24px;font-weight:900;margin-top:2px}
+.rv-tags{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:6px;min-height:22px}
+.tag{display:inline-block;padding:2px 9px;border-radius:11px;font-size:12px;font-weight:700;color:#fff;background:var(--c-common)}
+.tag.rare{background:var(--c-rare)} .tag.srare{background:var(--c-srare)} .tag.legend{background:var(--c-legend)}
+.tag.new{background:#ff5d6c} .tag.shiny{background:linear-gradient(90deg,#ff6b9a,#ffd36b,#6bffb8,#6bc4ff,#c46bff)} .tag.zone{background:#45608a}
+.rv-line{margin-top:8px;font-size:14px;line-height:1.55;color:#5a4a55;min-height:0}
+.rv-tap{margin-top:8px;font-size:12px;color:#b09a90}
+.rv-card.rare{box-shadow:0 0 0 3px var(--c-rare),0 18px 50px rgba(0,0,0,.45)}
+.rv-card.srare{box-shadow:0 0 0 3px var(--c-srare),0 0 40px rgba(240,169,43,.6),0 18px 50px rgba(0,0,0,.45)}
+.rv-card.legend{background:#20163f;color:#fff;box-shadow:0 0 0 3px #c9a8ff,0 0 60px rgba(155,107,255,.8)}
+.rv-card.legend .rv-no{color:#d7c2ff} .rv-card.legend .rv-line{color:#d9d0ff}
+.rv-card.legend .rv-photo{background:radial-gradient(circle at 50% 60%,#7cf3ff 0,#4a3aa8 45%,#160f33 75%)}
+.rv-card.shiny::before{content:'';position:absolute;inset:-5px;border-radius:9px;z-index:-1;background:conic-gradient(from var(--a,0deg),#ff6b9a,#ffd36b,#6bffb8,#6bc4ff,#c46bff,#ff6b9a);animation:spinA 2s linear infinite;filter:blur(1px)}
+@property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
+@keyframes spinA{to{--a:360deg}}
+.rv-card.shiny .sp{background:radial-gradient(circle at 20% 25%,#fff 0 2px,transparent 3px),radial-gradient(circle at 78% 30%,#fff 0 3px,transparent 4px),radial-gradient(circle at 65% 75%,#fff 0 2px,transparent 3px),radial-gradient(circle at 30% 70%,#fff 0 1.5px,transparent 3px);animation:twinkle 1s ease-in-out infinite alternate}
+@keyframes twinkle{from{opacity:.25}to{opacity:1}}
+.rv-card.junk .rv-photo{background:linear-gradient(#cfe7ee,#8fc1cf)}
+.rv-card.junk .rv-photo .emo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:110px;line-height:1}
+.rv-card.evo .rv-photo img.glow{filter:brightness(0) invert(1) drop-shadow(0 0 18px #fff)}
+.rv-card.evo .rv-photo{background:radial-gradient(circle,#fffbe0 0,#ffd27a 40%,#ff8f6b 75%)}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:6}
+#flash.go{animation:fl .6s ease-out}
+#flash.purple{background:#d9c6ff}
+@keyframes fl{0%{opacity:.9}100%{opacity:0}}
+
+/* ---------- 面板 ---------- */
+#panel{position:relative;background:var(--paper);color:var(--ink);padding:10px 12px calc(10px + var(--sab));display:flex;flex-direction:column;gap:8px;
+  border-top:6px solid var(--wood);box-shadow:0 -4px 0 var(--wood2) inset}
+#panel::before{content:'';position:absolute;left:0;right:0;top:-6px;height:6px;background:repeating-linear-gradient(90deg,var(--wood) 0 46px,var(--wood2) 46px 48px)}
+.brand,.stats,.tools,.howto,.panelHead{display:none}
+.ctrlRow{display:flex;gap:10px;align-items:stretch}
+#btnCast{flex:1;min-height:64px;border-radius:18px;background:linear-gradient(90deg,var(--teal) var(--p,0%),var(--accent) var(--p,0%));color:#fff;
+  font-size:22px;font-weight:900;box-shadow:0 5px 0 rgba(0,0,0,.22);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15;touch-action:none}
+#btnCast small{font-size:12px;font-weight:700;opacity:.9}
+#btnCast:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.22)}
+#btnCast.bite{background:#ff4f6d;animation:pulse .3s ease-in-out infinite alternate}
+#btnCast.wait{background:linear-gradient(90deg,#6f8fb0,#8aa7c4)}
+@keyframes pulse{to{transform:scale(1.04)}}
+.side{display:flex;flex-direction:column;gap:6px;width:76px}
+.sq{flex:1;border-radius:14px;background:var(--paper2);border:2px solid var(--line);font-size:12px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1.1;min-height:29px}
+.sq b{font-size:16px}
+.switch{display:inline-block;position:relative;width:34px;height:18px;border-radius:9px;background:#b9a99c;vertical-align:middle;transition:background .2s}
+.switch::after{content:'';position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .2s}
+.on .switch{background:var(--teal)} .on .switch::after{left:18px}
+#btnAuto{flex-direction:row;gap:5px}
+.recentRow{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;min-height:46px;align-items:center}
+.recentRow::-webkit-scrollbar{display:none}
+.rec{position:relative;flex:0 0 44px;height:44px;border-radius:10px;background:var(--paper2)}
+.rec img{width:100%;height:100%;object-fit:contain}
+.rec.s::after{content:'✨';position:absolute;right:-2px;top:-4px;font-size:11px}
+.rec.legend{background:radial-gradient(circle,#cdb6ff,transparent 70%)}
+.empty{font-size:12px;color:var(--soft);padding:0 4px}
+
+@media (min-width:1000px), (orientation:landscape) and (min-width:700px){
+  #app{flex-direction:row}
+  #panel{width:min(340px,34vw);border-top:0;border-left:8px solid var(--wood);box-shadow:none;padding:calc(16px + var(--sat)) 18px calc(16px + var(--sab));gap:12px;overflow-y:auto}
+  #panel::before{display:none}
+  .brand,.stats,.tools,.howto,.panelHead{display:block}
+  #hud .mob{display:none}
+  .brand h1{margin:0;font-size:24px;font-weight:900;line-height:1.2}
+  .brand p{margin:2px 0 0;font-size:13px;color:var(--soft)}
+  .stats{background:var(--paper2);border-radius:14px;padding:10px 12px}
+  .stats .big{display:flex;align-items:baseline;gap:6px}
+  .stats .big .num{font-size:42px;line-height:.9;color:var(--accent)}
+  .stats .big span:last-child{color:var(--soft);font-weight:700}
+  .bar{height:8px;border-radius:4px;background:var(--line);margin:6px 0 8px;overflow:hidden}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--accent));width:0;transition:width .5s}
+  .stats .sub{display:flex;gap:14px;font-size:13px;color:var(--soft)}
+  .stats .sub .num{font-size:20px;color:var(--ink)}
+  .ctrlRow{flex-direction:column}
+  #btnCast{min-height:84px;font-size:26px}
+  .side{flex-direction:row;width:auto}
+  .sq{min-height:44px;font-size:13px}
+  .panelHead{font-size:13px;font-weight:700;color:var(--soft);margin-bottom:-4px}
+  .recentRow{flex-wrap:wrap;overflow:visible}
+  .rec{flex-basis:calc((100% - 20px)/6);height:auto;aspect-ratio:1}
+  .tools{display:flex;gap:8px}
+  .tools .sq{flex:1;flex-direction:row;gap:6px}
+  .howto{font-size:12.5px;line-height:1.7;color:var(--soft);background:var(--paper2);border-radius:12px;padding:8px 12px}
+  .howto b{color:var(--ink)}
+  #minis{right:16px}
+  .rv-card{width:300px}
+}
+
+/* ---------- 圖鑑 ---------- */
+.modal{position:fixed;inset:0;z-index:20;display:none;background:rgba(10,8,30,.55);align-items:center;justify-content:center;padding:calc(10px + var(--sat)) 10px calc(10px + var(--sab))}
+.modal.show{display:flex}
+.sheet{width:min(920px,100%);height:min(760px,100%);background:var(--paper);color:var(--ink);border-radius:18px;display:flex;flex-direction:column;overflow:hidden;border:6px solid var(--wood)}
+.sheetHead{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:10px 12px;background:var(--paper2);border-bottom:2px solid var(--line)}
+.sheetHead h2{margin:0;font-size:18px}
+.sheetHead .num{font-size:22px;color:var(--accent)}
+.sheetHead .x{margin-left:auto;width:34px;height:34px;border-radius:17px;background:var(--paper);font-size:18px}
+.tabs{display:flex;gap:4px;width:100%}
+.tabs button{flex:1;padding:6px 0;border-radius:10px;font-size:13px;font-weight:700;background:var(--paper)}
+.tabs button.on{background:var(--teal);color:#fff}
+.gridBox{flex:1;min-height:0;padding:8px}
+#dxGrid{display:grid;gap:6px;height:100%;touch-action:pan-y}
+.dcell{position:relative;border-radius:10px;background:var(--paper2);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;cursor:default;border:2px solid transparent}
+.dcell img{width:72%;flex:1;min-height:0;object-fit:contain}
+.dcell.miss img{filter:brightness(0) opacity(.22)}
+.dcell .n{position:absolute;left:5px;top:1px;font-size:15px;color:var(--soft)}
+.dcell .c{position:absolute;right:5px;top:3px;font-size:11px;font-weight:700;color:var(--soft)}
+.dcell .st{position:absolute;right:4px;bottom:16px;font-size:12px}
+.dcell .nm{font-size:11.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:96%;padding-bottom:3px}
+.dcell.rare{border-color:color-mix(in srgb,var(--c-rare) 45%,transparent)}
+.dcell.srare{border-color:color-mix(in srgb,var(--c-srare) 60%,transparent)}
+.dcell.legend{border-color:var(--c-legend);background:radial-gradient(circle,color-mix(in srgb,var(--c-legend) 30%,transparent),var(--paper2) 70%)}
+.dcell.canS{cursor:pointer}
+.dcell.sh{background:linear-gradient(135deg,#fff3c4,#ffd0e4 50%,#cfe9ff)}
+.dcell.miss .nm{color:var(--soft)}
+.sheetFoot{display:flex;align-items:center;justify-content:center;gap:16px;padding:8px;border-top:2px solid var(--line)}
+.sheetFoot button{width:52px;height:38px;border-radius:12px;background:var(--paper2);font-size:18px;font-weight:900}
+.sheetFoot .num{font-size:22px;min-width:70px;text-align:center}
+.sheetFoot small{color:var(--soft);font-size:12px}
+</style>
+</head>
+<body>
+<div id="app">
+  <main id="seaWrap">
+    <canvas id="sea"></canvas>
+    <div id="hud">
+      <button class="chip ibtn mob" id="hudHome" title="回大廳">🏠</button>
+      <span class="chip mob">📖 <span class="num" data-k="count">0</span><span style="opacity:.7">/<span data-k="total">154</span></span></span>
+      <span class="chip" id="clock"></span>
+      <span class="chip" id="baitChip">🪱 大師餌 ×<span class="num" data-k="bait">0</span></span>
+      <span class="grow"></span>
+      <button class="chip ibtn mob" data-sw="music" title="音樂">🎵</button>
+      <button class="chip ibtn mob" data-sw="sfx" title="音效">🔊</button>
+    </div>
+    <div id="minis"></div>
+    <div id="hint">點一下甩竿．按住越久甩越遠</div>
+    <div id="reveal" class="reveal">
+      <div class="rv-card" id="rvCard">
+        <div class="rv-tape"></div>
+        <div class="rv-photo"><img id="rvImg" alt=""><div class="emo" id="rvEmo"></div><div class="sp"></div></div>
+        <div class="rv-no num" id="rvNo"></div>
+        <div class="rv-name" id="rvName"></div>
+        <div class="rv-tags" id="rvTags"></div>
+        <div class="rv-line" id="rvLine"></div>
+        <div class="rv-tap">點一下繼續</div>
+      </div>
+    </div>
+    <div id="flash"></div>
+  </main>
+
+  <aside id="panel">
+    <div class="brand"><h1>🎣 寶可夢釣魚台</h1><p>跨世代 · 全國水系 <span class="num" data-k="total">154</span> 隻</p></div>
+    <div class="stats">
+      <div class="big"><span class="num" data-k="count">0</span><span>/ <span data-k="total">154</span> 已登錄</span></div>
+      <div class="bar"><i data-bar="dex"></i></div>
+      <div class="sub"><span>✨ 閃光 <span class="num" data-k="shiny">0</span></span><span>🌊 傳說 <span class="num" data-k="legend">0</span>/<span data-k="legendTotal">8</span></span></div>
+    </div>
+    <div class="ctrlRow">
+      <button id="btnCast"><span id="castLbl">🎣 甩竿</span><small id="castSub">按住越久甩越遠</small></button>
+      <div class="side">
+        <button class="sq" id="btnAuto"><span>自動</span><i class="switch"></i></button>
+        <button class="sq" id="btnDex"><b>📖</b>圖鑑</button>
+      </div>
+    </div>
+    <div class="panelHead">最近釣到</div>
+    <div class="recentRow" id="recent"></div>
+    <div class="tools">
+      <button class="sq" data-sw="music">🎵 音樂</button>
+      <button class="sq" data-sw="sfx">🔊 音效</button>
+      <button class="sq" id="btnHome">🏠 回大廳</button>
+    </div>
+    <div class="howto">
+      <b>點一下</b>甩竿，<b>按住</b>蓄力甩更遠：遠的<b>深海</b>稀有多，近的<b>淺灘</b>普通多。<br>
+      浮標猛沉出現「！」就點一下，再<b>按住</b>收線。<br>
+      同種 3 隻會自動進化。深海偶爾有<b>傳說</b>；寶箱裡的<b>大師餌</b>保證下一竿稀有以上。
+    </div>
+  </aside>
+</div>
+
+<div class="modal" id="mDex">
+  <div class="sheet">
+    <div class="sheetHead">
+      <h2>📖 水系圖鑑</h2>
+      <span>已登錄 <span class="num" data-k="count">0</span>/<span data-k="total">154</span></span>
+      <span>✨ <span class="num" data-k="shiny">0</span></span>
+      <button class="x" id="dxClose">✕</button>
+      <div class="tabs" id="dxTabs">
+        <button data-f="all" class="on">全部</button><button data-f="got">已釣到</button><button data-f="miss">還沒釣到</button><button data-f="shiny">閃光</button><button data-f="legend">傳說</button>
+      </div>
+    </div>
+    <div class="gridBox"><div id="dxGrid"></div></div>
+    <div class="sheetFoot"><button id="dxPrev">‹</button><span class="num" id="dxPage">1/1</span><button id="dxNext">›</button><small>點閃光過的格子可切換顏色</small></div>
+  </div>
+</div>
+
+<script src="../all/data.js"></script>
+<script src="../shared/collect.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

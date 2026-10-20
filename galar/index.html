@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0a0e2a">
+<title>伽勒爾落珠板</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&family=Russo+One&family=Teko:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy0:#070a22; --navy1:#0e1440; --navy2:#18205a; --line:rgba(255,255,255,.14);
+  --txt:#f4f6ff; --mut:#9ea8d6; --red:#e8173a; --red2:#ff4d6d; --blue:#1e6bff; --blue2:#3fb8ff; --gold:#ffcc33; --pitch:#1f7a3a;
+  --num:"Teko","Noto Sans TC",sans-serif; --head:"Russo One","Noto Sans TC",sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;background:var(--navy0);color:var(--txt);font-family:"Noto Sans TC",system-ui,sans-serif;-webkit-user-select:none;user-select:none}
+body{background:
+  linear-gradient(115deg,rgba(232,23,58,.28) 0 18%,transparent 18% 82%,rgba(30,107,255,.28) 82%),
+  radial-gradient(ellipse 70% 50% at 50% 0%,#1b2670 0%,transparent 70%),var(--navy0)}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;border:0;background:none}
+#app{height:100vh;height:100dvh;display:grid;grid-template-columns:minmax(0,1fr);padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.side{display:none}
+.stage{display:flex;flex-direction:column;min-height:0;height:100%;padding:6px 6px 6px;gap:6px}
+
+/* 頂列：轉播字卡風（斜切） */
+.hud{display:flex;align-items:stretch;gap:6px;flex:none;height:44px}
+.brand{display:flex;align-items:center;gap:8px;min-width:0;margin-right:auto;padding:0 16px 0 10px;background:linear-gradient(90deg,var(--red),#b30f2c);clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%);border-radius:8px 0 0 8px}
+.brand .crest{width:26px;height:26px;flex:none;border-radius:50%;background:conic-gradient(var(--red) 0 50%,var(--blue) 0);box-shadow:0 0 0 2px #fff;position:relative}
+.brand .crest::after{content:"";position:absolute;inset:30%;border-radius:50%;background:#fff;box-shadow:0 0 0 2px #0b0f24}
+.brand b{display:block;font:15px/1 var(--head);letter-spacing:1px;white-space:nowrap}
+.brand small{display:block;font:600 11px/1 var(--num);letter-spacing:2px;opacity:.85;margin-top:2px}
+.score{display:flex;align-items:center;gap:6px;padding:0 14px 0 18px;margin-left:-14px;background:linear-gradient(90deg,#1544b8,var(--blue));clip-path:polygon(12px 0,100% 0,100% 100%,0 100%);border-radius:0 8px 8px 0}
+.score small{font-size:11px;font-weight:700;opacity:.85;writing-mode:vertical-rl;letter-spacing:1px}
+.score b{font:600 28px/1 var(--num);padding-top:4px}
+.score .of{font:500 15px/1 var(--num);opacity:.75;padding-top:4px}
+.ibtn{width:44px;border-radius:8px;background:rgba(255,255,255,.07);border:1px solid var(--line);display:grid;place-items:center;font-size:18px;flex:none}
+.ibtn:active{transform:scale(.94)}
+.ibtn.on{background:rgba(255,204,51,.2);border-color:rgba(255,204,51,.55)}
+
+/* 板子 */
+.board-wrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative}
+.board-frame{position:relative;border-radius:14px;overflow:hidden;background:#0b1030;
+  box-shadow:-3px 0 0 var(--red),3px 0 0 var(--blue),0 0 40px rgba(30,107,255,.18),0 20px 50px rgba(0,0,0,.55)}
+canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab;-webkit-touch-callout:none}
+canvas:active{cursor:grabbing}
+
+/* 抓到的跑馬字卡（不中斷） */
+.ticker{position:absolute;left:8px;top:23%;display:flex;flex-direction:column;gap:4px;pointer-events:none;width:min(46%,190px)}
+.tk{display:flex;align-items:center;gap:6px;height:34px;padding:0 10px 0 4px;background:linear-gradient(90deg,rgba(7,10,34,.92),rgba(14,20,64,.78));border-left:3px solid var(--blue2);border-radius:4px;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;animation:tkIn .28s cubic-bezier(.2,1.3,.4,1);transition:opacity .4s,transform .4s}
+.tk.out{opacity:0;transform:translateX(-30px)}
+.tk img{width:32px;height:32px;object-fit:contain;flex:none}
+.tk .no{font:500 15px/1 var(--num);color:var(--mut);padding-top:2px}
+.tk .nm{overflow:hidden;text-overflow:ellipsis}
+.tk .new{font:600 13px/1 var(--num);background:var(--gold);color:#2a1800;padding:2px 4px 0;border-radius:3px;letter-spacing:1px}
+.tk.rare{border-left-color:#60a5fa}.tk.srare{border-left-color:var(--gold)}.tk.shiny{border-left-color:#ff7ad9}
+.tk.evo{border-left-color:#6ee7b7}
+@keyframes tkIn{from{opacity:0;transform:translateX(-40px)}}
+
+/* 揭曉卡（稀有以上，排隊） */
+.card{position:absolute;left:50%;top:50%;width:min(78%,300px);transform:translate(-50%,-50%);pointer-events:none;opacity:0;display:none}
+.card.show{display:block;animation:cardIn .42s cubic-bezier(.2,1.4,.4,1) forwards}
+.card.hide{display:block;animation:cardOut .3s ease-in forwards}
+@keyframes cardIn{from{opacity:0;transform:translate(-50%,-50%) scale(.6) rotate(-6deg)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes cardOut{to{opacity:0;transform:translate(-50%,-80%) scale(.9)}}
+.card .in{position:relative;padding:12px 14px 14px;border-radius:12px;background:linear-gradient(160deg,#15206a,#090d2e 70%);border:2px solid #60a5fa;box-shadow:0 0 30px rgba(96,165,250,.45),0 16px 40px rgba(0,0,0,.6);overflow:hidden;text-align:center}
+.card .in::before{content:"";position:absolute;inset:-40% -60%;background:linear-gradient(100deg,transparent 40%,rgba(255,255,255,.28) 50%,transparent 60%);animation:sweep 1.4s .2s ease-out infinite}
+@keyframes sweep{from{transform:translateX(-60%)}to{transform:translateX(60%)}}
+.card .tier{display:inline-block;font:13px/1 var(--head);letter-spacing:2px;padding:4px 10px 3px;border-radius:3px;background:#2b5cd6;transform:skewX(-12deg)}
+.card img{display:block;width:62%;aspect-ratio:1;object-fit:contain;margin:4px auto 0;filter:drop-shadow(0 8px 14px rgba(0,0,0,.6));animation:pop .5s cubic-bezier(.2,1.7,.4,1)}
+@keyframes pop{from{transform:scale(.3)}}
+.card .nm{font-size:22px;font-weight:900;letter-spacing:1px}
+.card .no{font:500 20px/1 var(--num);color:var(--mut);letter-spacing:1px}
+.card .badges{display:flex;gap:4px;justify-content:center;margin-top:4px;min-height:18px}
+.badge{font:600 13px/1 var(--num);padding:3px 6px 1px;border-radius:3px;background:var(--gold);color:#2a1800;letter-spacing:1px}
+.badge.sh{background:linear-gradient(90deg,#ff5f9e,#ffb340,#6ee7b7,#60a5fa)}
+.badge.dm{background:var(--red);color:#fff}
+.card.srare .in{border-color:var(--gold);box-shadow:0 0 34px rgba(255,204,51,.5),0 16px 40px rgba(0,0,0,.6)}
+.card.srare .tier{background:var(--gold);color:#2a1800}
+.card.shiny .in{border-color:#ff7ad9;background:linear-gradient(160deg,#3a1460,#0b0d2e 70%)}
+.card.evo .in{border-color:#6ee7b7}
+.card.evo .tier{background:#10b981}
+.card .evorow{display:flex;align-items:center;justify-content:center;gap:4px}
+.card .evorow img{width:38%;margin:4px 0 0}
+.card .evorow .ar{font-size:26px;color:#6ee7b7}
+.card .q{position:absolute;right:8px;top:8px;font:500 16px/1 var(--num);color:var(--mut)}
+
+/* 閃光／傳說聚光燈（不暫停，只蓋在板子上） */
+.spot{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:radial-gradient(circle at 50% 45%,rgba(60,20,90,.9),rgba(4,6,20,.94) 70%);overflow:hidden;cursor:pointer;z-index:5}
+.spot.show{display:flex;animation:fadeIn .3s}
+@keyframes fadeIn{from{opacity:0}}
+.spot .rays{position:absolute;left:50%;top:45%;width:200%;aspect-ratio:1;transform:translate(-50%,-50%);background:repeating-conic-gradient(var(--ray,rgba(255,255,255,.08)) 0 8deg,transparent 8deg 20deg);border-radius:50%;animation:spin 12s linear infinite;-webkit-mask:radial-gradient(circle,#000 10%,transparent 60%);mask:radial-gradient(circle,#000 10%,transparent 60%)}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.spot .hint{position:relative;font:clamp(18px,5vw,26px)/1.1 var(--head);letter-spacing:3px;color:var(--hint,#fff);text-shadow:0 0 18px currentColor}
+.spot img{position:relative;width:min(64%,300px);aspect-ratio:1;object-fit:contain;filter:drop-shadow(0 10px 22px rgba(0,0,0,.6));animation:pop .6s cubic-bezier(.2,1.6,.4,1)}
+.spot .name{position:relative;font-size:clamp(28px,8vw,42px);font-weight:900;letter-spacing:2px}
+.spot .meta{position:relative;display:flex;gap:6px;align-items:center;font:500 20px/1 var(--num);color:var(--mut)}
+.spot.shiny .name{background:linear-gradient(90deg,#ff5f9e,#ffb340,#6ee7b7,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
+.spot .tap{position:absolute;bottom:14px;font-size:12px;color:var(--mut)}
+
+.toast{position:absolute;left:50%;top:15%;transform:translate(-50%,-8px);background:rgba(7,10,34,.88);border:1px solid var(--line);font-size:13px;font-weight:700;padding:6px 14px;border-radius:4px;white-space:nowrap;opacity:0;transition:.25s;pointer-events:none;max-width:92%;overflow:hidden;text-overflow:ellipsis;z-index:6}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.banner{position:absolute;left:0;right:0;top:19%;text-align:center;pointer-events:none;opacity:0;z-index:4}
+.banner.go{animation:ban 2.2s ease-out}
+.banner b{display:inline-block;font:clamp(30px,10vw,54px)/1 var(--head);letter-spacing:4px;padding:10px 28px 8px;color:#fff;transform:skewX(-10deg);background:linear-gradient(90deg,transparent,var(--bc,rgba(232,23,58,.9)) 15% 85%,transparent);text-shadow:0 0 20px rgba(255,255,255,.6)}
+.banner small{display:block;font-size:14px;font-weight:900;letter-spacing:2px;margin-top:6px;text-shadow:0 2px 6px #000}
+@keyframes ban{0%{opacity:0;transform:scaleX(.2)}12%{opacity:1;transform:scaleX(1.05)}20%{transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-20px)}}
+.pause-ov{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(7,10,34,.66);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);z-index:7}
+.pause-ov.show{display:flex}
+.pause-ov b{font:28px var(--head);letter-spacing:6px}
+
+/* 底列（手機） */
+.dock{flex:none;display:flex;align-items:center;gap:6px;height:48px}
+.autob{display:flex;align-items:center;gap:8px;height:100%;padding:0 12px;border-radius:8px;background:rgba(255,255,255,.07);border:1px solid var(--line);font-weight:900;font-size:13px;white-space:nowrap}
+.sw{width:40px;height:22px;border-radius:99px;background:rgba(255,255,255,.18);position:relative;transition:.2s;flex:none}
+.sw::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.2s}
+.sw.on{background:var(--pitch);box-shadow:0 0 10px rgba(52,211,153,.5)}
+.sw.on::after{left:21px}
+.strip{flex:1;min-width:0;height:100%;display:flex;align-items:center;gap:3px;overflow:hidden;padding:0 6px;border-radius:8px;background:rgba(0,0,0,.28);border:1px solid var(--line);cursor:pointer}
+.strip img{width:38px;height:38px;object-fit:contain;flex:none;border-radius:6px}
+.strip img.s{background:radial-gradient(circle,rgba(255,122,217,.35),transparent 70%)}
+.strip .ph{font-size:12px;color:var(--mut);white-space:nowrap}
+.dock .ibtn{height:100%}
+
+/* 桌機側欄 */
+.panel{background:linear-gradient(160deg,rgba(24,32,90,.75),rgba(10,14,46,.75));border:1px solid var(--line);border-radius:12px;padding:14px;position:relative;overflow:hidden}
+.panel.red{border-top:3px solid var(--red)}.panel.blue{border-top:3px solid var(--blue)}
+.panel h3{margin:0 0 10px;font:13px var(--head);letter-spacing:2px;color:var(--mut)}
+.bigbrand{padding:16px 14px;background:linear-gradient(120deg,var(--red) 0 50%,var(--blue) 50%);border-radius:12px;text-align:center;position:relative;overflow:hidden}
+.bigbrand::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.06) 0 14px,transparent 14px 28px)}
+.bigbrand b{position:relative;display:block;font:26px/1 var(--head);letter-spacing:2px;text-shadow:0 3px 0 rgba(0,0,0,.3)}
+.bigbrand small{position:relative;display:block;font:600 16px/1 var(--num);letter-spacing:4px;margin-top:6px}
+.prog{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:13px;margin-bottom:10px;align-items:end}
+.prog .num{font:500 22px/1 var(--num)}
+.prog .bar{grid-column:1/-1;height:6px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden}
+.prog .bar i{display:block;height:100%;width:0;transition:width .8s}
+.toggle{display:flex;align-items:center;justify-content:space-between;padding:7px 0;font-size:14px;font-weight:700;cursor:pointer}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.btns button{background:rgba(255,255,255,.08);border:1px solid var(--line);border-radius:8px;padding:10px 6px;font-weight:700;font-size:14px}
+.btns button.wide{grid-column:1/-1}
+.btns button:active{transform:scale(.97)}
+.recent{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.recent div{aspect-ratio:1;border-radius:6px;background:rgba(255,255,255,.05);display:grid;place-items:center;position:relative}
+.recent div.s{box-shadow:inset 0 0 0 1.5px #ff7ad9}
+.recent img{width:88%;height:88%;object-fit:contain}
+.kv{display:grid;grid-template-columns:1fr auto;gap:4px 8px;font-size:13px;align-items:end}
+.kv b{font:500 22px/1 var(--num);text-align:right}
+.rules{font-size:12px;color:var(--mut);line-height:1.75;margin:0;padding-left:16px}
+.rules b{color:var(--txt)}
+.keys{font-size:12px;color:var(--mut);line-height:1.9;margin:8px 0 0}
+.keys kbd{font:500 15px/1 var(--num);background:rgba(255,255,255,.1);border-radius:3px;padding:2px 6px 0;color:var(--txt)}
+@media (min-width:1000px){
+  #app{grid-template-columns:270px minmax(420px,600px) 270px;justify-content:center;gap:20px;padding:16px}
+  .side{display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto;scrollbar-width:none}
+  .side::-webkit-scrollbar{display:none}
+  .stage{padding:0}
+  .hud,.dock{display:none}
+}
+
+/* 圖鑑 */
+.modal{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;background:rgba(4,6,18,.84);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);padding:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom))}
+.modal.show{display:flex}
+.sheet{width:min(960px,100%);height:min(760px,100%);display:flex;flex-direction:column;background:linear-gradient(170deg,#141c56,#080b26 60%);border:1px solid var(--line);border-top:4px solid;border-image:linear-gradient(90deg,var(--red) 50%,var(--blue) 50%) 1;border-radius:4px;overflow:hidden}
+.sheet-head{display:flex;align-items:center;gap:10px;padding:12px 14px 6px}
+.sheet-head b{font:20px var(--head);letter-spacing:2px}
+.sheet-head .x{margin-left:auto;width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,.08);font-size:18px}
+.dex-top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:0 14px 8px;font-size:13px;color:var(--mut)}
+.dex-top b{font:500 22px/1 var(--num);color:var(--txt)}
+.tabs{display:flex;gap:4px;margin-left:auto}
+.tabs button{padding:6px 10px;border-radius:4px;background:rgba(255,255,255,.07);font-size:13px;font-weight:700}
+.tabs button.on{background:var(--blue);color:#fff}
+.sheet-body{flex:1;min-height:0;padding:4px 12px;overflow:hidden}
+.dexgrid{display:grid;gap:6px;height:100%}
+.dcell{position:relative;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;overflow:hidden;padding:2px}
+.dcell img{width:100%;flex:1;min-height:0;object-fit:contain}
+.dcell.miss img{filter:brightness(0);opacity:.35}
+.dcell .n{position:absolute;left:4px;top:3px;font:500 14px/1 var(--num);color:var(--mut)}
+.dcell .c{position:absolute;right:4px;top:3px;font:500 14px/1 var(--num);color:var(--gold)}
+.dcell .st{position:absolute;right:3px;bottom:16px;font-size:11px}
+.dcell .nm{font-size:11px;font-weight:700;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.dcell.srare{border-color:rgba(255,204,51,.35)}
+.dcell.legend{border-color:rgba(192,132,252,.6);background:rgba(192,132,252,.1)}
+.dcell.sh{background:radial-gradient(circle,rgba(255,122,217,.25),rgba(255,255,255,.04) 70%);cursor:pointer}
+.dcell.can{cursor:pointer}
+.sheet-foot{display:flex;align-items:center;gap:10px;padding:8px 14px 12px}
+.sheet-foot .note{font-size:12px;color:var(--mut)}
+.pager{display:flex;align-items:center;gap:8px;margin-left:auto;font:500 20px/1 var(--num)}
+.pager button{width:40px;height:36px;border-radius:6px;background:rgba(255,255,255,.08);font-size:20px}
+.btn{padding:9px 18px;border-radius:6px;font-weight:900}
+.btn.primary{background:var(--red)}
+.empty{color:var(--mut);font-size:13px;text-align:center;padding:30px 0}
+@media (max-width:520px){.sheet-foot .note{display:none}.tabs{margin-left:0}.card{width:min(66%,260px)}.card .nm{font-size:19px}}
+@media (prefers-reduced-motion:reduce){.spot .rays,.card .in::before{animation:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside class="side" id="sideL">
+    <div class="bigbrand"><b>GALAR PLINKO</b><small>伽勒爾落珠板 · 400</small></div>
+    <div class="panel red">
+      <h3>圖鑑</h3>
+      <div class="prog"><span>伽勒爾圖鑑</span><span class="num"><span data-k="dex">0</span> / 400</span><div class="bar"><i data-bar="dex" style="background:linear-gradient(90deg,var(--red),var(--blue2))"></i></div></div>
+      <div class="prog"><span>閃光</span><span class="num" data-k="shiny">0</span><div class="bar"><i data-bar="shiny" style="background:linear-gradient(90deg,#ff5f9e,#ffcc33)"></i></div></div>
+      <div class="prog"><span>傳說</span><span class="num"><span data-k="legend">0</span> / 5</span><div class="bar"><i data-bar="legend" style="background:linear-gradient(90deg,#a78bfa,#ff4d6d)"></i></div></div>
+      <div class="btns"><button data-act="dex" class="wide">📖 打開圖鑑</button></div>
+    </div>
+    <div class="panel blue">
+      <h3>設定</h3>
+      <div class="toggle" data-act="auto">自動落珠<span class="sw" data-sw="auto"></span></div>
+      <div class="toggle" data-act="music">音樂<span class="sw" data-sw="music"></span></div>
+      <div class="toggle" data-act="sfx">音效<span class="sw" data-sw="sfx"></span></div>
+      <div class="btns"><button data-act="pause"><span data-k="pauseLbl">⏸ 暫停</span></button><button data-act="home">🏠 回大廳</button></div>
+    </div>
+    <div class="panel">
+      <h3>玩法</h3>
+      <ul class="rules">
+        <li>在板子上<b>左右拖曳</b>選位置，按住會一直放珠。</li>
+        <li>珠落進哪一格，就<b>抓到</b>格子上的寶可夢。</li>
+        <li><b>中央金框</b>最稀有，越往兩邊越普通。</li>
+        <li>每 10 顆一顆<b>極巨珠</b>：保證稀有以上。</li>
+        <li>中央連擊 5 次：<b>傳說格</b>開 10 秒。</li>
+        <li>同一種抓 3 隻會自動進化。</li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="stage">
+    <header class="hud">
+      <div class="brand"><span class="crest"></span><div><b>伽勒爾</b><small>PLINKO</small></div></div>
+      <div class="score"><small>圖鑑</small><b data-k="dex">0</b><span class="of">/400</span></div>
+      <button class="ibtn" data-act="dex" aria-label="圖鑑">📖</button>
+      <button class="ibtn" data-act="pause" aria-label="暫停" data-pbtn>⏸</button>
+      <button class="ibtn" data-act="home" aria-label="回大廳">🏠</button>
+    </header>
+    <div class="board-wrap" id="boardWrap">
+      <div class="board-frame" id="boardFrame">
+        <canvas id="cv"></canvas>
+        <div class="ticker" id="ticker"></div>
+        <div class="card" id="card"></div>
+        <div class="banner" id="banner"><b id="banT">DYNAMAX</b><small id="banS"></small></div>
+        <div class="spot" id="spot"><div class="rays"></div><div class="hint" id="spHint"></div><img id="spImg" alt=""><div class="name" id="spName"></div><div class="meta" id="spMeta"></div><div class="tap">點一下繼續（珠子不會停）</div></div>
+        <div class="toast" id="toast"></div>
+        <div class="pause-ov" id="pauseOv"><b>暫停中</b><button class="btn primary" data-act="pause">▶ 繼續</button></div>
+      </div>
+    </div>
+    <footer class="dock">
+      <div class="autob" data-act="auto">自動<span class="sw" data-sw="auto"></span></div>
+      <div class="strip" id="strip" data-act="dex"><span class="ph">還沒抓到寶可夢</span></div>
+      <button class="ibtn" data-act="music" aria-label="音樂" data-mbtn>🎵</button>
+      <button class="ibtn" data-act="sfx" aria-label="音效" data-sbtn>🔊</button>
+    </footer>
+  </main>
+
+  <aside class="side" id="sideR">
+    <div class="panel blue">
+      <h3>最近抓到</h3>
+      <div class="recent" id="recent"></div>
+    </div>
+    <div class="panel red">
+      <h3>這次落珠</h3>
+      <div class="kv">
+        <span>放下的珠</span><b data-k="drops">0</b>
+        <span>抓到</span><b data-k="caught">0</b>
+        <span>新登錄</span><b data-k="newdex">0</b>
+        <span>極巨珠</span><b data-k="dmax">0</b>
+        <span>傳說格</span><b data-k="legendRuns">0</b>
+        <span>進化</span><b data-k="evos">0</b>
+      </div>
+      <p class="keys"><kbd>←</kbd><kbd>→</kbd> 移動　<kbd>Space</kbd> 放珠<br><kbd>A</kbd> 自動　<kbd>P</kbd> 暫停　<kbd>D</kbd> 圖鑑</p>
+    </div>
+  </aside>
+</div>
+
+<div class="modal" id="mDex">
+  <div class="sheet">
+    <div class="sheet-head"><b>伽勒爾圖鑑</b><button class="x" id="dxX" aria-label="關閉">✕</button></div>
+    <div class="dex-top" id="dxTop"></div>
+    <div class="sheet-body"><div class="dexgrid" id="dxGrid"></div></div>
+    <div class="sheet-foot"><span class="note">點有 ✨ 的寶可夢可切換閃光圖・左右滑動換頁</span><div class="pager"><button id="dxPrev" aria-label="上一頁">‹</button><span id="dxPage">1/1</span><button id="dxNext" aria-label="下一頁">›</button></div><button class="btn primary" id="dxClose">關閉</button></div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="../shared/collect.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
