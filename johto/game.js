@@ -7,7 +7,12 @@ const W = 540;
 let H = 820;                        // 棋盤高度會依螢幕比例調整
 const GRAV = 1150, BALL_R = 7, MAX_V = 1100;
 const GAME_BALLS = 100, ROUND_SEC = 30;
-const SUN_GOAL = 20, SUN_REWARD = 5, MOON_GOAL = 40, MAX_ON_BOARD = 140;
+const SUN_GOAL = 20, SUN_REWARD = 5, MOON_GOAL = 40;
+// 效能：index.html 開頭已決定 PERF.lite（省電）與 PERF.T（大螢幕放大倍率）
+const PERF = window.PERF || { lite: false, T: 1, big: false };
+let LITE = !!PERF.lite;
+const maxOnBoard = () => (LITE ? 80 : 140);
+const fx = n => (LITE ? Math.max(4, Math.round(n * 0.45)) : n);   // 粒子數量
 const DAY_SEC = 60, ROAM_SEC = 20, NIGHT_RARE_MULT = 1.6;
 const SAVE_KEY = 'johtoPachinko.v1';
 const DEX_KEY = 'johtoPachinko.dex';       // 大廳讀這個算圖鑑進度
@@ -78,7 +83,7 @@ const fresh = () => ({ dex: {}, sun: 0, moon: 0, charge: [0, 0], legIdx: [0, 0],
   stats: { caught: 0, shots: 0, rounds: 0, legend: 0, by: {}, balls: {}, kinds: {}, wheel: {} }, music: true, sfx: true });
 if (/[?&]reset\b/.test(location.search)) {
   try { [SAVE_KEY, DEX_KEY].forEach(k => localStorage.removeItem(k)); } catch (e) {}
-  history.replaceState(null, '', location.pathname);
+  history.replaceState(null, '', location.pathname + (/[?&]tv\b/.test(location.search) ? '?tv' : ''));
 }
 let S;
 try { S = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) {}
@@ -211,10 +216,11 @@ const AU = (() => {
 const sfx = AU.play;
 
 /* ============ 畫布與版面 ============ */
-const cv = $('cv'), ctx = cv.getContext('2d');
+const cv = $('cv');
+let ctx = cv.getContext('2d');
 const frameEl = $('boardFrame'), wrapEl = $('boardWrap');
 const CHROME_X = 22, CHROME_Y = 60;   // GBC 卡匣外框佔掉的空間（左右 padding、上方標籤列）
-let scale = 1, bgK = 0, BG = null;
+let scale = 1, bgK = 0, BG = null, BGN = null, wheelFace = null, wheelFaceK = 0;
 
 const bumpers = [{ x: 150, y: 0, r: 25, kind: 'sun', f: 0 }, { x: 380, y: 0, r: 25, kind: 'moon', f: 0 }];
 const wheel = { x: CX, y: 0, R: 110, ang: 0, f: 0 };
@@ -254,7 +260,7 @@ function layout(newH) {
       for (let gy = Math.floor((p.y - 12) / CELL); gy <= Math.floor((p.y + 12) / CELL); gy++)
         if (gx >= 0 && gy >= 0 && gx < GC && gy < GR) grid[gx + gy * GC].push(p);
   });
-  STARS = Array.from({ length: 70 }, () => ({ x: 14 + Math.random() * (W - 28), y: Math.random() * H * 0.75, s: 0.6 + Math.random() * 1.4, ph: Math.random() * 6.3, sp: 1.5 + Math.random() * 3 }));
+  STARS = Array.from({ length: LITE ? 28 : 70 }, () => ({ x: 14 + Math.random() * (W - 28), y: Math.random() * H * 0.75, s: 0.6 + Math.random() * 1.4, ph: Math.random() * 6.3, sp: 1.5 + Math.random() * 3 }));
   bgK = 0;
 }
 
@@ -264,14 +270,19 @@ function fit() {
   const newH = Math.round(clamp(W * ch / cw, 740, 1100));
   if (Math.abs(newH - H) > 3 || !pegs.length) layout(newH);
   scale = Math.min(cw / W, ch / H);
-  const dpr = Math.min(window.devicePixelRatio || 1, 2), k = scale * dpr;
+  // 實際螢幕像素 = 版面 px × 大螢幕放大倍率 T × 裝置像素比；省電模式壓低解析度上限
+  const T = PERF.T || 1;
+  const dpr = Math.min(window.devicePixelRatio || 1, LITE ? 1.5 : 2);
+  let k = scale * dpr * T;
+  const cap = LITE ? 900000 : 2600000;                   // 畫布像素上限
+  if (W * H * k * k > cap) k = Math.sqrt(cap / (W * H));
   frameEl.style.width = W * scale + 'px'; frameEl.style.height = H * scale + 'px';
   cv.width = Math.round(W * k); cv.height = Math.round(H * k);
   ctx.setTransform(k, 0, 0, k, 0, 0);
-  if (bgK !== k) { BG = buildBackground(k); bgK = k; }
+  if (bgK !== k) { BG = buildBackground(k, false); BGN = buildBackground(k, true); wheelFace = null; bgK = k; }
 }
 
-function buildBackground(k) {
+function buildBackground(k, isNight) {
   const c = document.createElement('canvas'); c.width = Math.round(W * k); c.height = Math.round(H * k);
   const g = c.getContext('2d'); g.scale(k, k);
   const grd = g.createLinearGradient(0, 0, 0, H);
@@ -301,6 +312,22 @@ function buildBackground(k) {
   pockets.forEach(pk => { g.fillStyle = 'rgba(167,139,250,.07)'; g.fillRect(pk.x0 + 1, pocketTop, pk.x1 - pk.x0 - 2, H - pocketTop); });
   const fade = g.createLinearGradient(0, H - 40, 0, H); fade.addColorStop(0, 'rgba(0,0,0,0)'); fade.addColorStop(1, 'rgba(0,0,0,.35)');
   g.fillStyle = fade; g.fillRect(0, H - 40, W, 40);
+  if (isNight) {
+    const ng = g.createLinearGradient(0, 0, 0, H);
+    ng.addColorStop(0, 'rgba(8,18,70,.62)'); ng.addColorStop(1, 'rgba(6,12,40,.45)');
+    g.fillStyle = ng; g.fillRect(0, 0, W, H);
+  }
+  // 靜止的金色小釘（被碰到發亮的那幾顆在 render 另外畫）
+  for (const p of pegs) {
+    g.fillStyle = '#c9a24a'; g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.7)'; g.beginPath(); g.arc(p.x - 1.2, p.y - 1.3, 1.2, 0, Math.PI * 2); g.fill();
+  }
+  // 省電模式沒有 CSS 網格罩，改成淡淡烤進背景
+  if (LITE) {
+    g.fillStyle = 'rgba(0,0,0,.08)';
+    const st = 3 / Math.max(0.5, scale);
+    for (let y = 0; y < H; y += st) g.fillRect(0, y, W, 1 / Math.max(0.5, scale));
+  }
   return c;
 }
 
@@ -471,6 +498,7 @@ function stepBall(b, h) {
 /* ============ 事件 ============ */
 function addFloat(x, y, text, color = '#e8c872') { floats.push({ x, y, text, color, t: 0 }); }
 function burst(x, y, color, n = 14) {
+  n = fx(n);
   for (let i = 0; i < n; i++) {
     const a = Math.random() * Math.PI * 2, s = 60 + Math.random() * 200;
     parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 60, t: 0, life: 0.6 + Math.random() * 0.5, color });
@@ -634,6 +662,34 @@ function updateWheel(dt) {
     if (time - wh.t0 > 0.4) wh.state = 'idle';
   }
 }
+function drawSector(g, s, R, hot) {
+  g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R, s.a0, s.a1); g.closePath();
+  g.fillStyle = hot ? '#ffffff' : s.col; g.fill();
+  g.strokeStyle = 'rgba(0,0,0,.45)'; g.lineWidth = 2; g.stroke();
+  const mid = (s.a0 + s.a1) / 2;
+  g.save(); g.rotate(mid); g.translate(R * 0.66, 0); g.rotate(Math.PI / 2);
+  const num = s.label[0] === '+';
+  g.font = num ? `11px ${PXFONT}` : `900 ${s.deg < 30 ? 13 : 15}px ${FONT}`;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = hot ? '#2a1d00' : s.fg;
+  const was = ctx; ctx = g;   // pokeIcon／drawEgg 畫在 ctx 上，暫時換成快取畫布
+  try {
+    if (s.k === 'egg') { drawEgg(0, -14, 7); g.fillText(s.label, 0, 8); }
+    else if (s.k === 'great' || s.k === 'ultra') { pokeIcon(0, -14, 7, s.k === 'great' ? '#3b82f6' : '#2a2a2a'); g.fillText(s.label, 0, 8); }
+    else if (s.k === 'shiny') { g.fillText('✦', 0, -12); g.fillText(s.label, 0, 8); }
+    else if (s.k === 'jp') { g.fillText('★', 0, -12); g.fillText(s.label, 0, 8); }
+    else g.fillText(s.label, 0, 0);
+  } finally { ctx = was; }
+  g.restore();
+}
+function buildWheelFace(k) {
+  const R = wheel.R, size = R * 2 + 4, c = document.createElement('canvas');
+  c.width = c.height = Math.ceil(size * k);
+  const g = c.getContext('2d'); g.scale(k, k); g.translate(size / 2, size / 2);
+  SECTORS.forEach(s => drawSector(g, s, R, false));
+  wheelFace = c; wheelFaceK = k;
+}
+let RIM = null, HUB = null, gradY = -1;
 function drawWheel() {
   const { x, y, R } = wheel;
   const spinning = wh.state === 'spin' || wh.state === 'bounce', showing = wh.state === 'show';
@@ -642,36 +698,25 @@ function drawWheel() {
   ctx.globalAlpha = 0.92;
   // 外圈
   ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.beginPath(); ctx.arc(x, y, R + 12, 0, Math.PI * 2); ctx.fill();
-  const rim = ctx.createLinearGradient(x - R, y - R, x + R, y + R);
-  rim.addColorStop(0, '#f6e2a0'); rim.addColorStop(0.5, '#a67c23'); rim.addColorStop(1, '#f1d98f');
-  ctx.strokeStyle = rim; ctx.lineWidth = 9; ctx.beginPath(); ctx.arc(x, y, R + 6, 0, Math.PI * 2); ctx.stroke();
+  if (gradY !== y) {
+    gradY = y;
+    RIM = ctx.createLinearGradient(x - R, y - R, x + R, y + R);
+    RIM.addColorStop(0, '#f6e2a0'); RIM.addColorStop(0.5, '#a67c23'); RIM.addColorStop(1, '#f1d98f');
+    HUB = ctx.createRadialGradient(x - 6, y - 8, 2, x, y, 30);
+    HUB.addColorStop(0, '#fff3c4'); HUB.addColorStop(0.5, '#e8c872'); HUB.addColorStop(1, '#8d6a1a');
+  }
+  ctx.strokeStyle = RIM; ctx.lineWidth = 9; ctx.beginPath(); ctx.arc(x, y, R + 6, 0, Math.PI * 2); ctx.stroke();
   if (spinning || wheel.f > 0) { ctx.globalAlpha = 0.5 * (spinning ? 0.6 + Math.sin(time * 10) * 0.3 : wheel.f); ctx.strokeStyle = '#fff3c4'; ctx.lineWidth = 16; ctx.beginPath(); ctx.arc(x, y, R + 6, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 0.92; }
-  // 格子
+  // 格子（快取成一張圖；停格閃爍時只重畫那一格）
+  const k = bgK || 1;
+  if (!wheelFace || wheelFaceK !== k) buildWheelFace(k);
   ctx.translate(x, y); ctx.rotate(wheel.ang);
-  SECTORS.forEach((s, i) => {
-    const hot = showing && i === wh.result;
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, R, s.a0, s.a1); ctx.closePath();
-    ctx.fillStyle = hot ? (blink ? '#ffffff' : s.col) : s.col; ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.lineWidth = 2; ctx.stroke();
-    const mid = (s.a0 + s.a1) / 2;
-    ctx.save(); ctx.rotate(mid); ctx.translate(R * 0.66, 0); ctx.rotate(Math.PI / 2);
-    const num = s.label[0] === '+';
-    ctx.font = num ? `11px ${PXFONT}` : `900 ${s.deg < 30 ? 13 : 15}px ${FONT}`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = hot && blink ? '#2a1d00' : s.fg;
-    if (s.k === 'egg') { drawEgg(0, -14, 7); ctx.fillText(s.label, 0, 8); }
-    else if (s.k === 'great' || s.k === 'ultra') { pokeIcon(0, -14, 7, s.k === 'great' ? '#3b82f6' : '#2a2a2a'); ctx.fillText(s.label, 0, 8); }
-    else if (s.k === 'shiny') { ctx.fillText('✦', 0, -12); ctx.fillText(s.label, 0, 8); }
-    else if (s.k === 'jp') { ctx.fillText('★', 0, -12); ctx.fillText(s.label, 0, 8); }
-    else ctx.fillText(s.label, 0, 0);
-    ctx.restore();
-  });
+  ctx.drawImage(wheelFace, -R - 2, -R - 2, R * 2 + 4, R * 2 + 4);
+  if (showing && blink && wh.result >= 0) drawSector(ctx, SECTORS[wh.result], R, true);
   ctx.restore();
   // 中心轂＋保留燈
   ctx.save(); ctx.globalAlpha = 0.95;
-  const hub = ctx.createRadialGradient(x - 6, y - 8, 2, x, y, 30);
-  hub.addColorStop(0, '#fff3c4'); hub.addColorStop(0.5, '#e8c872'); hub.addColorStop(1, '#8d6a1a');
-  ctx.fillStyle = hub; ctx.beginPath(); ctx.arc(x, y, 30, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = HUB; ctx.beginPath(); ctx.arc(x, y, 30, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = '#5a3f0a'; ctx.lineWidth = 2.5; ctx.stroke();
   for (let i = 0; i < HOLD_MAX; i++) {
     const a = -Math.PI / 2 + i * Math.PI / 2, lx = x + Math.cos(a) * 17, ly = y + Math.sin(a) * 17, on = i < wh.hold;
@@ -709,7 +754,7 @@ function fire(p) {
   if (isPaused() || S.game.ended) return false;
   if (tiltLock > 0) { toast('TILT 中，等台子解鎖…'); return false; }
   if (S.game.balls <= 0) { toast('這局的彈珠用完了'); return false; }
-  if (balls.length >= MAX_ON_BOARD) return false;
+  if (balls.length >= maxOnBoard()) return false;
   S.game.balls--; S.game.shots++; S.stats.shots++;
   const kind = KIND_OF(S.game.shots); statMap('kinds', kind);
   // 出口速度由力道決定（弱：落右邊，強：飛到左邊），再換算成通道底部的初速
@@ -856,12 +901,17 @@ function pokeIcon(x, y, r, top = '#ff4d5e') {
   ctx.fillStyle = '#f4f6ff'; ctx.beginPath(); ctx.arc(0, 0, r * 0.3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   ctx.restore();
 }
+const SUN_GRAD = {};
 function sunIcon(x, y, r, dim) {
   ctx.save(); ctx.translate(x, y);
   ctx.strokeStyle = dim ? '#6b5a2a' : '#ffd166'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
   for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; ctx.beginPath(); ctx.moveTo(Math.cos(a) * (r + 3), Math.sin(a) * (r + 3)); ctx.lineTo(Math.cos(a) * (r + 8), Math.sin(a) * (r + 8)); ctx.stroke(); }
-  const g = ctx.createRadialGradient(-2, -2, 1, 0, 0, r);
-  if (dim) { g.addColorStop(0, '#8a7a3a'); g.addColorStop(1, '#4a3f1a'); } else { g.addColorStop(0, '#fff6c0'); g.addColorStop(1, '#f59e0b'); }
+  const key = (dim ? 'd' : 'b') + r;
+  let g = SUN_GRAD[key];
+  if (!g) {
+    g = SUN_GRAD[key] = ctx.createRadialGradient(-2, -2, 1, 0, 0, r);
+    if (dim) { g.addColorStop(0, '#8a7a3a'); g.addColorStop(1, '#4a3f1a'); } else { g.addColorStop(0, '#fff6c0'); g.addColorStop(1, '#f59e0b'); }
+  }
   ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
@@ -874,9 +924,11 @@ function moonIcon(x, y, r, dim) {
   if (!dim) { ctx.fillStyle = '#fff'; [[-r * 0.3, r * 0.45], [-r * 0.55, -r * 0.1]].forEach(([a, b]) => { ctx.beginPath(); ctx.arc(a, b, 1.6, 0, Math.PI * 2); ctx.fill(); }); }
   ctx.restore();
 }
+const NEON_LITE = [[0, 1]];
 function neonLine(pts, color, w) {
+  if (LITE) NEON_LITE[0][0] = w + 2;
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  for (const [lw, a] of [[w + 8, 0.18], [w, 1]]) {
+  for (const [lw, a] of (LITE ? NEON_LITE : [[w + 8, 0.18], [w, 1]])) {
     ctx.globalAlpha = a; ctx.strokeStyle = color; ctx.lineWidth = lw;
     ctx.beginPath(); ctx.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]); ctx.stroke();
   }
@@ -887,17 +939,15 @@ function render() {
   if (!BG) return;
   ctx.save();
   if (shakeT > 0) ctx.translate(shakeDir * Math.sin(shakeT * 70) * 6 * (shakeT / 0.28), 0);
-  ctx.drawImage(BG, 0, 0, W, H);
+  ctx.drawImage(night ? BGN : BG, 0, 0, W, H);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
 
-  // 夜晚：深藍罩＋星星
+  // 夜晚：星星（深藍罩已烤進背景）
   if (night) {
-    const ng = ctx.createLinearGradient(0, 0, 0, H);
-    ng.addColorStop(0, 'rgba(8,18,70,.62)'); ng.addColorStop(1, 'rgba(6,12,40,.45)');
-    ctx.fillStyle = ng; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#fff';
     for (const s of STARS) {
       const a = 0.35 + 0.65 * (0.5 + Math.sin(time * s.sp + s.ph) * 0.5);
-      ctx.globalAlpha = a; ctx.fillStyle = '#fff'; ctx.fillRect(s.x - s.s / 2, s.y - s.s / 2, s.s, s.s);
+      ctx.globalAlpha = a; ctx.fillRect(s.x - s.s / 2, s.y - s.s / 2, s.s, s.s);
       if (s.s > 1.6) { ctx.fillRect(s.x - s.s * 1.5, s.y - 0.4, s.s * 3, 0.8); ctx.fillRect(s.x - 0.4, s.y - s.s * 1.5, 0.8, s.s * 3); }
     }
     ctx.globalAlpha = 1;
@@ -910,11 +960,12 @@ function render() {
   if (charging) { ctx.fillStyle = `rgba(232,200,114,${0.3 + power * 0.5})`; ctx.beginPath(); ctx.arc(LAUNCH_X, H - 30, 6 + power * 6, 0, Math.PI * 2); ctx.fill(); }
   if (S.game.balls > 0 && !charging) ctx.drawImage(BALL_SPR[nextKind()], LAUNCH_X - 8, H - 38, 16, 16);
 
-  // 金色小釘
+  // 金色小釘：靜止的已在背景裡，這裡只畫正在發亮的
+  ctx.fillStyle = '#fff3c4';
   for (const p of pegs) {
-    if (p.f > 0) { ctx.globalAlpha = p.f * 0.6; ctx.fillStyle = '#fff3c4'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 6 * p.f, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }
-    ctx.fillStyle = p.f > 0 ? '#fff3c4' : '#c9a24a'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.arc(p.x - 1.2, p.y - 1.3, 1.2, 0, Math.PI * 2); ctx.fill();
+    if (p.f <= 0) continue;
+    ctx.globalAlpha = p.f * 0.6; ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 6 * p.f, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
   }
 
   // 計數器：太陽／月亮（不當班的半暗）
@@ -1087,7 +1138,9 @@ $('drNew').addEventListener('click', () => {
 });
 $('drLobby').addEventListener('click', () => { save(); location.href = '../'; });
 $('btnBox').addEventListener('click', () => { AU.init(); requestOpen(); });
-function syncSwitches() { $('swMusic').classList.toggle('on', S.music); $('swSfx').classList.toggle('on', S.sfx); }
+function syncSwitches() { $('swMusic').classList.toggle('on', S.music); $('swSfx').classList.toggle('on', S.sfx); $('swLite').classList.toggle('on', LITE); $('swBig').classList.toggle('on', !!PERF.big); }
+$('swLite').addEventListener('click', () => setLite(!LITE, true));
+$('swBig').addEventListener('click', () => setBig(!PERF.big));
 $('swMusic').addEventListener('click', () => { AU.init(); S.music = !S.music; AU.setMusic(S.music); syncSwitches(); save(); });
 $('swSfx').addEventListener('click', () => { AU.init(); S.sfx = !S.sfx; AU.setSfx(S.sfx); syncSwitches(); save(); });
 
@@ -1458,15 +1511,48 @@ window.__pachinko = () => ({ S, paused: isPaused(), roundLeft, H, wh, attackT, n
 window.__spin = k => { wh.forced = k; wh.hold = Math.min(HOLD_MAX, wh.hold + 1); };   // k：b5/b10/b20/great/ultra/egg/shiny/jp
 window.__night = on => { night = !!on; dayLeft = DAY_SEC; syncClockUI(); };
 window.__fire = p => fire(p);
+// 量測：連畫 n 幀的平均毫秒（含輪盤轉動與夜晚）
+window.__perf = () => ({ lite: LITE, big: PERF.big, T: PERF.T, k: bgK, canvas: [cv.width, cv.height], fps: +fps.last.toFixed(1), litePref: PERF.litePref || null });
+window.__lite = on => setLite(on, false);
+window.__bench = (n = 300) => { const t0 = performance.now(); for (let i = 0; i < n; i++) { time += 1 / 60; render(); } return +((performance.now() - t0) / n).toFixed(3); };
 window.__sim = (sec, fireOn = true) => { const was = autoTest; autoTest = fireOn; for (let i = 0; i < sec * 60; i++) update(1 / 60); autoTest = was; return S.stats; };
 
 /* ============ 主迴圈 ============ */
 let last = performance.now();
+const fps = { t: 0, n: 0, slow: 0, warm: 2, last: 0 };
 function frame(now) {
-  const dt = Math.min(0.033, (now - last) / 1000); last = now;
-  if (!isPaused()) for (let i = 0; i < speed; i++) update(dt);
+  const el = Math.min(0.1, Math.max(0, (now - last) / 1000)); last = now;
+  // 低階機一幀可能 40–60ms：拆成多個 ≤34ms 的小步，物理不穿牆、遊戲速度也不會變慢
+  const steps = Math.max(1, Math.ceil(el / 0.034)), dt = el / steps;
+  if (!isPaused()) for (let i = 0; i < speed * steps; i++) update(dt);
   render(); updateTimerUI();
+  watchFps(el);
   requestAnimationFrame(frame);
+}
+// 沒手動選過省電模式時：連續兩個 3 秒區間平均低於 40fps 就自動切省電
+function watchFps(el) {
+  if (LITE || PERF.litePref || document.hidden || isPaused()) { fps.t = fps.n = 0; return; }
+  if (fps.warm > 0) { fps.warm -= el; return; }
+  fps.t += el; fps.n++;
+  if (fps.t < 3) return;
+  fps.last = fps.n / fps.t;
+  fps.slow = fps.last < 40 ? fps.slow + 1 : 0;
+  fps.t = fps.n = 0;
+  if (fps.slow >= 2) { setLite(true, false); toast('畫面有點卡，已自動切到省電模式（選單可以關）'); }
+}
+function setLite(on, remember) {
+  LITE = !!on;
+  if (remember) { PERF.litePref = on ? 'lite' : 'full'; try { localStorage.setItem('johtoPachinko.perf', PERF.litePref); } catch (e) {} }
+  document.documentElement.classList.toggle('lite', LITE);
+  STARS = STARS.slice(0, LITE ? 28 : 70);
+  while (STARS.length < (LITE ? 28 : 70)) STARS.push({ x: 14 + Math.random() * (W - 28), y: Math.random() * H * 0.75, s: 0.6 + Math.random() * 1.4, ph: Math.random() * 6.3, sp: 1.5 + Math.random() * 3 });
+  bgK = 0; fit(); syncSwitches();
+}
+function setBig(on) {
+  PERF.bigPref = on ? 'on' : 'off';
+  try { localStorage.setItem('johtoPachinko.big', PERF.bigPref); } catch (e) {}
+  if (PERF.apply) PERF.apply();
+  bgK = 0; fit(); syncSwitches();
 }
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { charging = false; $('lever').classList.remove('on'); save(); AU.suspend(); } else AU.resume();
@@ -1474,8 +1560,11 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('beforeunload', save);
 new ResizeObserver(fit).observe(wrapEl);
-window.addEventListener('resize', () => { fit(); if ($('mDex').classList.contains('show')) renderDex(); });
-if (document.fonts && document.fonts.load) document.fonts.load('12px "Press Start 2P"').catch(() => {});
+window.addEventListener('resize', () => { bgK = 0; fit(); if ($('mDex').classList.contains('show')) renderDex(); });
+if (document.fonts && document.fonts.load) {
+  document.fonts.load('12px "Press Start 2P"').then(() => { wheelFace = null; }).catch(() => {});
+  if (document.fonts.ready) document.fonts.ready.then(() => { wheelFace = null; });
+}
 fit(); syncSwitches(); syncClockUI(); refreshUI(); renderRecent();
 if (S.game.ended) showSummary();
 requestAnimationFrame(frame);

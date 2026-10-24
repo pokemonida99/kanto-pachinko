@@ -130,8 +130,9 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
 .keys kbd{font:7px var(--px);background:rgba(0,0,0,.2);border-radius:4px;padding:3px 5px}
 .rules{font-size:12px;line-height:1.75;margin:0;padding-left:16px}
 .side-btn{background:rgba(0,0,0,.2);border-radius:10px;padding:10px;font-weight:900;font-size:13px;width:100%;margin-top:8px}
-@media (min-width:1000px){
-  #app{grid-template-columns:240px minmax(0,660px) 240px;justify-content:center;gap:20px;padding:16px}
+/* 三欄只在橫放的大寬度用；直放的大螢幕（閨蜜機直立、iPad Pro 直拿）走單欄放大 */
+@media (min-width:1000px) and (orientation:landscape){
+  #app{grid-template-columns:minmax(180px,240px) minmax(0,660px) minmax(180px,240px);justify-content:center;gap:20px;padding:16px}
   .side{display:flex;flex-direction:column;gap:14px;min-height:0;overflow:hidden}
   .stage{padding:0}
   .col{width:44px}
@@ -151,6 +152,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
 .card{background:var(--glass);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .card h3{margin:0 0 8px;font-size:13px;color:var(--gold);font-weight:900;letter-spacing:1px}
 .toggle{display:flex;align-items:center;justify-content:space-between;padding:8px 2px;font-size:14px;font-weight:700}
+.toggle .tnote{display:block;font-size:10px;font-weight:500;color:var(--mut)}
 .sw{width:46px;height:26px;border-radius:99px;background:rgba(255,255,255,.15);position:relative;transition:.2s}
 .sw::after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
 .sw.on{background:var(--gold)}
@@ -318,7 +320,71 @@ details.debug button.on{background:rgba(232,200,114,.4)}
   .gchip{height:40px}
 }
 @media (prefers-reduced-motion:reduce){.spot .rays,.rc .ballw .pb{animation:none}}
+/* ===== 大螢幕模式（閨蜜機等）：整頁用固定的邏輯尺寸排版，再等比放大到整個螢幕 ===== */
+html.big,html.big body{overflow:hidden}
+html.big body{width:var(--bw);height:var(--bh);transform:scale(var(--bt));transform-origin:0 0}
+html.big #app{height:100%}
+html.big .modal,html.big .spot,html.big .flash,html.big .scrim{position:fixed}
+
+/* ===== 省電模式：拿掉低階 GPU 最吃力的效果，玩法不變 ===== */
+html.lite .grid-ov{display:none}
+html.lite .modal,html.lite .pause-ov{-webkit-backdrop-filter:none;backdrop-filter:none}
+html.lite .modal{background:rgba(3,14,11,.95)}
+html.lite .pause-ov{background:rgba(6,32,26,.88)}
+html.lite .spot .rays{animation:none;-webkit-mask:none;mask:none;opacity:.5}
+html.lite .spot img{animation:none;filter:brightness(0)}
+html.lite .spot.revealed img,html.lite .spot.egg img{filter:none}
+html.lite .rc .ballw .pb,html.lite .rc.sil.hot{animation:none}
+html.lite .boxbtn.ready{animation:none;box-shadow:0 3px 0 var(--gold3),0 0 0 3px #fff3c4}
+html.lite .cart{box-shadow:0 0 0 2px var(--gold3)}
+html.lite .gear,html.lite .sheet,html.lite .banner{box-shadow:none}
+html.lite .gchip{box-shadow:none}
+html.lite .tiltmsg{text-shadow:none}
+
+/* ===== 舊版瀏覽器（webOS 等 Chromium 88 以前）不支援 aspect-ratio 的備援 ===== */
+@supports not (aspect-ratio:1/1){
+  .recent .rc-mini{display:block;height:0;padding-bottom:100%}
+  .recent .rc-mini img{position:absolute;left:7%;top:7%}
+  .rc .ballw .pb{height:0;padding-bottom:44%}
+  .rc .ballw .pb.egg{padding-bottom:52%}
+}
+
 </style>
+<script>
+// 版面與效能偵測（要在畫面出來前決定，避免閃一下）
+(function () {
+  var html = document.documentElement, q = location.search, ua = navigator.userAgent;
+  var TV_UA = /webOS|Web0S|NetCast|SmartTV|SMART-TV|Tizen|BRAVIA|HbbTV|AFT[A-Z]|CrKey/i.test(ua);
+  var FORCE_TV = /[?&]tv\b/.test(q);
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // 省電：使用者在選單選過就照選的；沒選過就看是不是電視／閨蜜機、記憶體 ≤2GB、或網址帶 ?lite
+  var pref = get('johtoPachinko.perf');
+  var lite = pref ? pref === 'lite' : (FORCE_TV || TV_UA || /[?&]lite\b/.test(q) || (navigator.deviceMemory && navigator.deviceMemory <= 2));
+  if (lite) html.classList.add('lite');
+  var bigPref = get('johtoPachinko.big');
+  window.PERF = { lite: !!lite, litePref: pref, tv: FORCE_TV || TV_UA, bigPref: bigPref, T: 1, big: false };
+  // 大螢幕：直放用 540 寬排版、橫放用 1000 高排版，再整頁等比放大
+  function apply() {
+    var w = window.innerWidth, h = window.innerHeight;
+    var coarse = window.matchMedia && matchMedia('(pointer: coarse)').matches;
+    var auto = FORCE_TV || TV_UA || (coarse && Math.min(w, h) >= 900);
+    var bp = window.PERF.bigPref;
+    var big = bp ? bp === 'on' : auto;
+    window.PERF.bigAuto = auto;
+    var T = 1;
+    if (big) T = h >= w ? w / 540 : Math.max(1, h / 1000);
+    if (T <= 1.02) { big = false; T = 1; }
+    window.PERF.big = big; window.PERF.T = T;
+    html.classList.toggle('big', big);
+    html.style.setProperty('--bt', T);
+    html.style.setProperty('--bw', (w / T) + 'px');
+    html.style.setProperty('--bh', (h / T) + 'px');
+  }
+  window.PERF.apply = apply;
+  apply();
+  window.addEventListener('resize', apply);
+})();
+</script>
 </head>
 <body>
 <div id="app">
@@ -430,6 +496,8 @@ details.debug button.on{background:rgba(232,200,114,.4)}
     <div class="card" style="padding:8px 14px">
       <div class="toggle"><span>🎵 背景音樂</span><button class="sw" id="swMusic" aria-label="背景音樂"></button></div>
       <div class="toggle"><span>🔔 音效</span><button class="sw" id="swSfx" aria-label="音效"></button></div>
+      <div class="toggle"><span>⚡ 省電模式<small class="tnote">低階手機、閨蜜機建議開</small></span><button class="sw" id="swLite" aria-label="省電模式"></button></div>
+      <div class="toggle"><span>📺 大螢幕放大<small class="tnote">閨蜜機、平板直放用</small></span><button class="sw" id="swBig" aria-label="大螢幕放大"></button></div>
     </div>
     <div class="card">
       <h3>收集進度</h3>

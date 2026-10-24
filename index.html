@@ -71,6 +71,9 @@ header small{display:block;font:600 11px var(--num);color:var(--mut);letter-spac
 
 /* 機台 */
 .sec h3{margin:0 0 10px;font-size:14px;color:var(--mut);letter-spacing:2px;font-weight:700;display:flex;align-items:center;gap:8px}
+.tvlink{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px;padding:12px 14px;border-radius:14px;background:rgba(255,209,102,.08);border:1px dashed rgba(255,209,102,.45);font-size:13px;color:var(--mut)}
+.tvlink b{color:var(--gold);font-size:14px}
+@supports not (aspect-ratio:1/1){.dcell{height:0;padding-bottom:100%}.dcell img{position:absolute;left:8%;top:8%}}
 .sec h3::after{content:"";flex:1;height:1px;background:var(--line)}
 .cabs{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 4px 10px;margin:0 -4px;scrollbar-width:none}
 .cabs::-webkit-scrollbar{display:none}
@@ -257,6 +260,7 @@ body.settled .pika,body.settled .bubble{opacity:1;transform:none;animation:none}
         <span class="go">▶ 開始</span>
       </a>
     </div>
+    <a class="tvlink" href="johto/?tv">📺 <b>閨蜜機・大螢幕專用</b><span>城都台整頁放大、自動省電，直放橫放都能玩 →</span></a>
   </section>
 
   <section class="sec">
