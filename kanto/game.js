@@ -7,7 +7,12 @@ const W = 540;
 let H = 820;                        // 棋盤高度會依螢幕比例調整
 const GRAV = 1150, BALL_R = 7, MAX_V = 1100;
 const GAME_BALLS = 100, ROUND_SEC = 30;
-const BOLT_GOAL = 20, BOLT_REWARD = 5, PBALL_GOAL = 40, MAX_ON_BOARD = 140;
+const BOLT_GOAL = 20, BOLT_REWARD = 5, PBALL_GOAL = 40;
+// 效能：index.html 開頭已決定 PERF.lite（省電）與 PERF.T（大螢幕放大倍率）
+const PERF = window.PERF || { lite: false, T: 1, big: false };
+let LITE = !!PERF.lite;
+const maxOnBoard = () => (LITE ? 80 : 140);
+const fx = n => (LITE ? Math.max(4, Math.round(n * 0.45)) : n);   // 粒子數量
 // 拉霸版是主要玩法；傳統版（中央轉盤）用 ?mode=classic；挑戰用 ?challenge=all 或 ?challenge=500（拉霸版）
 const QS = new URLSearchParams(location.search);
 const MODE = QS.get('mode') === 'classic' ? 'classic' : 'slot';
@@ -17,7 +22,8 @@ const CH_NAME = { all: '全圖鑑最少彈珠', 500: '500 顆收集賽' };
 const SAVE_KEY = CH ? 'kantoPachinko.ch.' + CH : SLOT ? 'kantoPachinko.slot' : 'kantoPachinko.v1';
 const DEX_KEY = 'kantoPachinko.dex';       // 一般模式兩版共用；挑戰有自己的圖鑑，存檔時再併進共用圖鑑
 const REC_KEY = 'kantoPachinko.records';   // 挑戰最佳紀錄
-const selfURL = q => location.pathname + (q ? '?' + q : '');
+const TVQ = /[?&]tv\b/.test(location.search) ? 'tv' : '';
+const selfURL = q => { const all = [q, TVQ].filter(Boolean).join('&'); return location.pathname + (all ? '?' + all : ''); };
 const MODE_QS = CH ? 'challenge=' + CH : SLOT ? '' : 'mode=classic';
 document.body.classList.add('mode-' + MODE);
 if (CH) document.body.classList.add('challenge');
@@ -277,11 +283,16 @@ function fit() {
   const newH = Math.round(clamp(W * ch / cw, 740, 1100));
   if (Math.abs(newH - H) > 3 || !pegs.length) layout(newH);
   scale = Math.min(cw / W, ch / H);
-  const dpr = Math.min(window.devicePixelRatio || 1, 2), k = scale * dpr;
+  // 實際螢幕像素 = 版面 px × 大螢幕放大倍率 T × 裝置像素比；省電模式壓低解析度上限
+  const T = PERF.T || 1;
+  const dpr = Math.min(window.devicePixelRatio || 1, LITE ? 1.5 : 2);
+  let k = scale * dpr * T;
+  const cap = LITE ? 900000 : 2600000;                   // 畫布像素上限
+  if (W * H * k * k > cap) k = Math.sqrt(cap / (W * H));
   frameEl.style.width = W * scale + 'px'; frameEl.style.height = H * scale + 'px';
   cv.width = Math.round(W * k); cv.height = Math.round(H * k);
   ctx.setTransform(k, 0, 0, k, 0, 0);
-  if (bgK !== k) { BG = buildBackground(k); bgK = k; }
+  if (bgK !== k) { BG = buildBackground(k); bgK = k; reelGradY = -1; }
 }
 
 function buildBackground(k) {
@@ -310,6 +321,11 @@ function buildBackground(k) {
   pockets.forEach(pk => { g.fillStyle = 'rgba(167,139,250,.07)'; g.fillRect(pk.x0 + 1, pocketTop, pk.x1 - pk.x0 - 2, H - pocketTop); });
   const fade = g.createLinearGradient(0, H - 40, 0, H); fade.addColorStop(0, 'rgba(0,0,0,0)'); fade.addColorStop(1, 'rgba(0,0,0,.35)');
   g.fillStyle = fade; g.fillRect(0, H - 40, W, 40);
+  // 靜止的釘子（被碰到發亮的那幾顆在 render 另外畫）
+  for (const p of pegs) {
+    g.fillStyle = '#6f7eae'; g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.75)'; g.beginPath(); g.arc(p.x - 1.3, p.y - 1.4, 1.3, 0, Math.PI * 2); g.fill();
+  }
   return c;
 }
 
@@ -437,6 +453,7 @@ function stepBall(b, h) {
 /* ============ 事件 ============ */
 function addFloat(x, y, text, color = '#ffd166') { floats.push({ x, y, text, color, t: 0 }); }
 function burst(x, y, color, n = 14) {
+  n = fx(n);
   for (let i = 0; i < n; i++) {
     const a = Math.random() * Math.PI * 2, s = 60 + Math.random() * 200;
     parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 60, t: 0, life: 0.6 + Math.random() * 0.5, color });
@@ -623,6 +640,7 @@ function updateSlot(dt) {
   });
   if (anySpin && time - sl.lastTick > 0.07) { sl.lastTick = time; sfx.reelTick(); }
 }
+let REEL_BG = null, REEL_SH = null, reelGradY = -1;
 function drawSlot() {
   const x0 = slot.x - slot.w / 2, y0 = slot.y - slot.h / 2;
   const win = sl.state === 'win', reachOn = sl.hot && reels[2].spin;
@@ -632,7 +650,7 @@ function drawSlot() {
   if (!showMsg) txt(sl.rush ? `⚡ 皮卡丘 RUSH 剩 ${sl.rush} 轉` : '寶可拉霸', slot.x, y0 - 22, sl.rush ? 15 : 14, sl.rush ? '#ffd166' : '#9aa6c8');
   // 外框
   ctx.fillStyle = 'rgba(0,0,0,.35)'; rr(x0 - 6, y0 - 6, slot.w + 12, slot.h + 12, 18); ctx.fill();
-  for (const [lw, a] of [[12, 0.2], [3, 1]]) { ctx.globalAlpha = a; ctx.strokeStyle = frameCol; ctx.lineWidth = lw; rr(x0 - 4, y0 - 4, slot.w + 8, slot.h + 8, 16); ctx.stroke(); }
+  for (const [lw, a] of (LITE ? [[4, 1]] : [[12, 0.2], [3, 1]])) { ctx.globalAlpha = a; ctx.strokeStyle = frameCol; ctx.lineWidth = lw; rr(x0 - 4, y0 - 4, slot.w + 8, slot.h + 8, 16); ctx.stroke(); }
   ctx.globalAlpha = 1;
   ctx.fillStyle = 'rgba(10,14,42,.82)'; rr(x0, y0, slot.w, slot.h, 13); ctx.fill();
   // 三格
@@ -642,8 +660,13 @@ function drawSlot() {
     const rl = reels[i];
     ctx.save();
     rr(wx, wy, ww, wh, 10); ctx.clip();
-    const g = ctx.createLinearGradient(0, wy, 0, wy + wh); g.addColorStop(0, '#c9d2f5'); g.addColorStop(0.5, '#ffffff'); g.addColorStop(1, '#c9d2f5');
-    ctx.fillStyle = g; ctx.fillRect(wx, wy, ww, wh);
+    if (reelGradY !== wy) {
+      reelGradY = wy;
+      REEL_BG = ctx.createLinearGradient(0, wy, 0, wy + wh); REEL_BG.addColorStop(0, '#c9d2f5'); REEL_BG.addColorStop(0.5, '#ffffff'); REEL_BG.addColorStop(1, '#c9d2f5');
+      REEL_SH = ctx.createLinearGradient(0, wy, 0, wy + wh);
+      REEL_SH.addColorStop(0, 'rgba(10,14,42,.55)'); REEL_SH.addColorStop(0.22, 'rgba(10,14,42,0)'); REEL_SH.addColorStop(0.78, 'rgba(10,14,42,0)'); REEL_SH.addColorStop(1, 'rgba(10,14,42,.55)');
+    }
+    ctx.fillStyle = REEL_BG; ctx.fillRect(wx, wy, ww, wh);
     if (i === 2 && sl.qmark) {
       ctx.fillStyle = '#141b3f'; ctx.fillRect(wx, wy, ww, wh);
       const p = 1 + Math.sin(time * 18) * 0.08;
@@ -662,9 +685,7 @@ function drawSlot() {
       if (fast) { ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(wx, wy, ww, wh); }
     }
     // 上下陰影
-    const sh = ctx.createLinearGradient(0, wy, 0, wy + wh);
-    sh.addColorStop(0, 'rgba(10,14,42,.55)'); sh.addColorStop(0.22, 'rgba(10,14,42,0)'); sh.addColorStop(0.78, 'rgba(10,14,42,0)'); sh.addColorStop(1, 'rgba(10,14,42,.55)');
-    ctx.fillStyle = sh; ctx.fillRect(wx, wy, ww, wh);
+    ctx.fillStyle = REEL_SH; ctx.fillRect(wx, wy, ww, wh);
     ctx.restore();
     if (win) { ctx.strokeStyle = `hsl(${(hue + i * 60) % 360},95%,65%)`; ctx.lineWidth = 3; rr(wx, wy, ww, wh, 10); ctx.stroke(); }
     else if (!rl.spin && isRareSym(SYMS[((Math.round(rl.pos) % NS) + NS) % NS])) { ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 2.5; rr(wx, wy, ww, wh, 10); ctx.stroke(); }
@@ -701,7 +722,7 @@ function fire() {
   if (isPaused() || S.game.ended) return false;
   if (tiltLock > 0) { toast('TILT 中，等台子解鎖…'); return false; }
   if (CH !== 'all' && S.game.balls <= 0) { toast('這局的彈珠用完了'); return false; }
-  if (balls.length >= MAX_ON_BOARD) return false;
+  if (balls.length >= maxOnBoard()) return false;
   if (CH !== 'all') S.game.balls--;   // 全圖鑑挑戰不限彈珠，只算用了幾顆
   S.game.shots++; S.stats.shots++;
   balls.push({ x: clamp(launcher.x + (Math.random() - 0.5) * 3, 24, W - 24), y: 30, vx: (Math.random() - 0.5) * 30, vy: 60, r: BALL_R, cool: {}, age: 0, dead: false });
@@ -725,7 +746,7 @@ cv.addEventListener('pointerdown', e => {
   const p = toCanvas(e);
   launcher.tx = launcher.x = clamp(p.x, 24, W - 24);
   holding = true; holdT = 0; queueBurst();
-  cv.setPointerCapture(e.pointerId);
+  try { cv.setPointerCapture(e.pointerId); } catch (err) {}
 });
 cv.addEventListener('pointermove', e => { if (holding || e.pointerType === 'mouse') launcher.tx = clamp(toCanvas(e).x, 24, W - 24); });
 ['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, () => { holding = false; }));
@@ -835,7 +856,7 @@ function bolt(x, y, s) {
 }
 function neonLine(pts, color, w) {
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  for (const [lw, a] of [[w + 8, 0.18], [w, 1]]) {
+  for (const [lw, a] of (LITE ? [[w + 2, 1]] : [[w + 8, 0.18], [w, 1]])) {
     ctx.globalAlpha = a; ctx.strokeStyle = color; ctx.lineWidth = lw;
     ctx.beginPath(); ctx.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]); ctx.stroke();
   }
@@ -858,11 +879,11 @@ function render() {
   rr(lx - 20, 12, 40, 24, 12); ctx.fill(); ctx.stroke();
   if (S.game.balls > 0) ctx.drawImage(BALL_SPR, lx - 9, 15, 18, 18);
 
-  // 釘子
+  // 釘子：靜止的已在背景裡，這裡只畫正在發亮的
   for (const p of pegs) {
-    if (p.f > 0) { ctx.globalAlpha = p.f * 0.6; ctx.fillStyle = '#5ef2ff'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 6 * p.f, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }
-    ctx.fillStyle = p.f > 0 ? '#c9fbff' : '#6f7eae'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.beginPath(); ctx.arc(p.x - 1.3, p.y - 1.4, 1.3, 0, Math.PI * 2); ctx.fill();
+    if (p.f <= 0) continue;
+    ctx.globalAlpha = p.f * 0.6; ctx.fillStyle = '#5ef2ff'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 6 * p.f, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.fillStyle = '#c9fbff'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
   }
 
   // 計數器：外圈進度環
@@ -1031,7 +1052,9 @@ $('drNew').addEventListener('click', () => {
   closeDrawer(); startNewGame();
 });
 $('btnBox').addEventListener('click', () => { AU.init(); requestOpen(); });
-function syncSwitches() { $('swMusic').classList.toggle('on', S.music); $('swSfx').classList.toggle('on', S.sfx); }
+function syncSwitches() { $('swMusic').classList.toggle('on', S.music); $('swSfx').classList.toggle('on', S.sfx); $('swLite').classList.toggle('on', LITE); $('swBig').classList.toggle('on', !!PERF.big); }
+$('swLite').addEventListener('click', () => setLite(!LITE, true));
+$('swBig').addEventListener('click', () => setBig(!PERF.big));
 $('swMusic').addEventListener('click', () => { AU.init(); S.music = !S.music; AU.setMusic(S.music); syncSwitches(); save(); });
 $('swSfx').addEventListener('click', () => { AU.init(); S.sfx = !S.sfx; AU.setSfx(S.sfx); syncSwitches(); save(); });
 
@@ -1438,15 +1461,45 @@ $('dbReset').addEventListener('click', () => {
 window.__pachinko = () => ({ S, paused: isPaused(), roundLeft, H, sl, attackT });
 window.__spin = r => { sl.forced = r; sl.hold++; };
 window.__cupTune = (dy, hw) => { CUP_DY = dy; cup.hw = hw; layout(H); bgK = 0; fit(); };
+window.__perf = () => ({ lite: LITE, big: PERF.big, T: PERF.T, k: bgK, canvas: [cv.width, cv.height], fps: +fps.last.toFixed(1), litePref: PERF.litePref || null });
+window.__lite = on => setLite(on, false);
+window.__bench = (n = 300) => { const t0 = performance.now(); for (let i = 0; i < n; i++) { time += 1 / 60; render(); } return +((performance.now() - t0) / n).toFixed(3); };
 window.__sim = (sec, fireOn = true) => { const was = autoTest; autoTest = fireOn; for (let i = 0; i < sec * 60; i++) update(1 / 60); autoTest = was; return S.stats; };
 
 /* ============ 主迴圈 ============ */
 let last = performance.now();
+const fps = { t: 0, n: 0, slow: 0, warm: 2, last: 0 };
 function frame(now) {
-  const dt = Math.min(0.033, (now - last) / 1000); last = now;
-  if (!isPaused()) for (let i = 0; i < speed; i++) update(dt);
+  const el = Math.min(0.1, Math.max(0, (now - last) / 1000)); last = now;
+  // 低階機一幀可能 40–60ms：拆成多個 ≤34ms 的小步，物理不穿牆、遊戲速度也不會變慢
+  const steps = Math.max(1, Math.ceil(el / 0.034)), dt = el / steps;
+  if (!isPaused()) for (let i = 0; i < speed * steps; i++) update(dt);
   render(); updateTimerUI();
+  watchFps(el);
   requestAnimationFrame(frame);
+}
+// 沒手動選過省電模式時：連續兩個 3 秒區間平均低於 40fps 就自動切省電
+function watchFps(el) {
+  if (LITE || PERF.litePref || document.hidden || isPaused()) { fps.t = fps.n = 0; return; }
+  if (fps.warm > 0) { fps.warm -= el; return; }
+  fps.t += el; fps.n++;
+  if (fps.t < 3) return;
+  fps.last = fps.n / fps.t;
+  fps.slow = fps.last < 40 ? fps.slow + 1 : 0;
+  fps.t = fps.n = 0;
+  if (fps.slow >= 2) { setLite(true, false); toast('畫面有點卡，已自動切到省電模式（選單可以關）'); }
+}
+function setLite(on, remember) {
+  LITE = !!on;
+  if (remember) { PERF.litePref = on ? 'lite' : 'full'; try { localStorage.setItem('kantoPachinko.perf', PERF.litePref); } catch (e) {} }
+  document.documentElement.classList.toggle('lite', LITE);
+  bgK = 0; fit(); syncSwitches();
+}
+function setBig(on) {
+  PERF.bigPref = on ? 'on' : 'off';
+  try { localStorage.setItem('kantoPachinko.big', PERF.bigPref); } catch (e) {}
+  if (PERF.apply) PERF.apply();
+  bgK = 0; fit(); syncSwitches();
 }
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { holding = false; save(); AU.suspend(); } else AU.resume();
@@ -1454,7 +1507,7 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('beforeunload', save);
 new ResizeObserver(fit).observe(wrapEl);
-window.addEventListener('resize', () => { fit(); if ($('mDex').classList.contains('show')) renderDex(); });
+window.addEventListener('resize', () => { bgK = 0; fit(); if ($('mDex').classList.contains('show')) renderDex(); });
 fit(); syncSwitches(); refreshUI(); renderRecent(); renderRecords();
 if (CH && !S.game.shots && !S.game.ended) setTimeout(() => toast(`挑戰開始：${CH_NAME[CH]}${CH === 'all' ? '（不限彈珠，收集滿 151 種就結束）' : '（共 500 顆）'}`), 400);
 if (S.game.ended) showSummary();

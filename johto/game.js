@@ -790,7 +790,7 @@ function doShake(dir) {
 }
 cv.addEventListener('pointerdown', () => AU.init());
 const lever = $('lever');
-lever.addEventListener('pointerdown', e => { e.preventDefault(); lever.setPointerCapture(e.pointerId); startCharge(); });
+lever.addEventListener('pointerdown', e => { e.preventDefault(); try { lever.setPointerCapture(e.pointerId); } catch (err) {} startCharge(); });
 ['pointerup', 'pointercancel'].forEach(t => lever.addEventListener(t, releaseCharge));
 lever.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('keydown', e => {

@@ -18,7 +18,7 @@
 | 釣魚台 | `fishing/` | 全國水系 154 | 甩竿、浮標下沉點一下、深海出稀有、寶箱與傳說 |
 | 夾娃娃機 | `claw/` | 全國 1025 | 夾玩偶、五次沒中第六次必抓、傳說玩偶 |
 
-閨蜜機或大螢幕請用 `tv/` 入口（https://pokemonida99.github.io/kanto-pachinko/tv/），會開城都台的整頁放大＋省電版。
+閨蜜機或大螢幕請用 `tv/` 入口（https://pokemonida99.github.io/kanto-pachinko/tv/），可選關都台或城都台，都是整頁放大＋省電版。
 
 大廳另外放了兩台獨立網站的機台連結：[P 寶可夢 雷光RUSH](https://pokemonida99.github.io/pachinko-modern/) 與 [寶可夢小瑪莉](https://pokemonida99.github.io/pokemon-little-mary/)（各自存檔，不進全國圖鑑）。
 

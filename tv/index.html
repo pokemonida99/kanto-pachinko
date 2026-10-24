@@ -2,13 +2,64 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>城都彈珠研究所・大螢幕版</title>
-<meta http-equiv="refresh" content="0; url=../johto/?tv">
-<style>html,body{margin:0;height:100%;background:#06201a;color:#e8c872;font:700 20px "Noto Sans TC",sans-serif;display:flex;align-items:center;justify-content:center}a{color:#e8c872}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#070b1f">
+<title>寶可夢彈珠研究所・大螢幕版</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@700;900&display=swap" rel="stylesheet">
+<style>
+/* 給閨蜜機、電視用的選台頁：字大、按鈕大、不用捲動 */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+html,body{margin:0;height:100%;overflow:hidden;background:#070b1f;color:#eef2ff;font-family:"Noto Sans TC",system-ui,sans-serif}
+body{display:flex;flex-direction:column;padding:4vmin;gap:3vmin;
+  background:radial-gradient(ellipse 80% 50% at 50% 0%,#1d2a6b 0%,transparent 60%),#070b1f}
+header{display:flex;align-items:center;gap:2.4vmin;flex:none}
+.logo{width:7vmin;height:7vmin;border-radius:50%;flex:none;position:relative;
+  background:linear-gradient(#ff4d5e 0 46%,#0b0f24 46% 54%,#f4f6ff 54%);box-shadow:0 0 0 .4vmin #0b0f24}
+.logo::after{content:"";position:absolute;left:36%;top:36%;right:36%;bottom:36%;border-radius:50%;background:#f4f6ff;box-shadow:0 0 0 .5vmin #0b0f24}
+h1{margin:0;font-size:5.2vmin;font-weight:900;letter-spacing:.3vmin;line-height:1.1}
+h1 small{display:block;font-size:2.4vmin;font-weight:700;color:#9aa6c8;letter-spacing:.2vmin;margin-top:.6vmin}
+.back{margin-left:auto;font-size:2.6vmin;font-weight:700;color:#9aa6c8;text-decoration:none;padding:1.6vmin 2.6vmin;border-radius:2vmin;border:.3vmin solid rgba(255,255,255,.18)}
+main{flex:1;min-height:0;display:flex;gap:3vmin}
+@media (orientation:portrait){main{flex-direction:column}}
+a.cab{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:space-between;gap:2vmin;padding:4vmin;border-radius:4vmin;text-decoration:none;color:inherit;position:relative;overflow:hidden;border:.4vmin solid var(--acc);background:var(--bg)}
+a.cab:active{transform:scale(.98)}
+.cab .gen{font-size:2.6vmin;font-weight:900;letter-spacing:.5vmin;color:var(--acc)}
+.cab h2{margin:.6vmin 0 0;font-size:8vmin;font-weight:900;line-height:1.05}
+.cab p{margin:0;font-size:2.8vmin;line-height:1.5;color:#c9d0e6}
+.cab .art{display:flex;align-items:flex-end;gap:1vmin;flex:1;min-height:0;max-height:24vmin}
+.cab .art img{height:100%;max-height:22vmin;width:auto;max-width:24%;object-fit:contain}
+.cab .go{display:flex;align-items:center;justify-content:center;height:10vmin;border-radius:2.6vmin;font-size:4.4vmin;font-weight:900;background:var(--acc);color:#141b3f}
+.k{--acc:#ff6b7a;--bg:linear-gradient(160deg,rgba(255,77,94,.22),rgba(20,27,63,.9) 55%)}
+.j{--acc:#e8c872;--bg:linear-gradient(160deg,rgba(232,200,114,.24),rgba(6,32,26,.95) 55%)}
+footer{flex:none;font-size:2vmin;color:#9aa6c8;text-align:center}
+</style>
 </head>
 <body>
-<p>正在開啟城都台大螢幕版…<br><a href="../johto/?tv">沒有自動跳轉請點這裡</a></p>
-<script>location.replace('../johto/?tv');</script>
+<header>
+  <span class="logo"></span>
+  <h1>寶可夢彈珠研究所<small>大螢幕版・整頁放大＋省電</small></h1>
+  <a class="back" href="../">一般版大廳</a>
+</header>
+<main>
+  <a class="cab k" href="../kanto/?tv">
+    <div><div class="gen">GEN 1 · 關都</div><h2>無印・關都</h2></div>
+    <div class="art"><img src="../all/assets/n1.webp" alt=""><img src="../all/assets/n4.webp" alt=""><img src="../all/assets/n7.webp" alt=""><img src="../all/assets/n25.webp" alt=""></div>
+    <p>點台面發射，三格拉霸，三隻皮卡丘就是皮卡丘 RUSH。</p>
+    <span class="go">▶ 開始</span>
+  </a>
+  <a class="cab j" href="../johto/?tv">
+    <div><div class="gen">GEN 2 · 城都</div><h2>金・銀・城都</h2></div>
+    <div class="art"><img src="../all/assets/n152.webp" alt=""><img src="../all/assets/n155.webp" alt=""><img src="../all/assets/n158.webp" alt=""><img src="../all/assets/n172.webp" alt=""></div>
+    <p>拉桿蓄力發射，大輪盤送珠與蛋，日夜輪替。</p>
+    <span class="go">▶ 開始</span>
+  </a>
+</main>
+<footer>圖鑑存在這台機器的瀏覽器裡。遊戲中右上角選單可以關掉省電模式或大螢幕放大。</footer>
+<script>
+// 擋兩指放大與長按選單
+document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+</script>
 </body>
 </html>
